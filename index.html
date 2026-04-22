@@ -626,11 +626,10 @@ function afficherInfos(e) {
 
   let html = "";
 
-  // 1. Badge catégorie en premier
-  const cat = getCategorie(e);
-  const couleur = getCouleur(e);
-  html += `<div style="margin-bottom:8px;">
-    <span class="badge-activite" style="background:${couleur}20;color:${couleur};border:1px solid ${couleur}80;">${getLabel(e)}</span>
+  // 1. Badges — toujours "Groupe réseaux sociaux" + "Association" si applicable + "Polo Wheel" si applicable
+  html += `<div style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:4px;">
+    <span class="badge-activite" style="background:#1565C020;color:#1565C0;border:1px solid #1565C080;">📱 Groupe réseaux sociaux</span>
+    ${isAsso(e) ? `<span class="badge-activite" style="background:#E6510020;color:#E65100;border:1px solid #E6510080;">🏛 Association</span>` : ""}
     ${isPolo(e) ? `<span class="badge-activite" style="background:#6A1B9A20;color:#6A1B9A;border:1px solid #6A1B9A80;">🏑 Polo Wheel</span>` : ""}
   </div>`;
 
@@ -681,7 +680,7 @@ function afficherInfos(e) {
   html += `<div style="margin-top:14px; padding-top:12px; border-top:1px solid #e0e0e0; text-align:center;">
     <a href="https://discord.com/channels/941268536351916062/1330844960920047637" target="_blank"
        style="color:#5865F2; font-size:13px; font-weight:bold; text-decoration:none;">
-      💬 Viens en discuter avec d'autres
+      💬 Viens en discuter avec d'autres.
     </a>
   </div>`;
 
@@ -776,7 +775,32 @@ function toggleTag(tag) {
 /* =========================
    Filtre région
    ========================= */
-document.getElementById("regionFilter").addEventListener("change", updateMap);
+const REGION_VIEWS = {
+  "Auvergne-Rhône-Alpes":        { center: [45.45, 4.85],  zoom: 8  },
+  "Bourgogne-Franche-Comté":     { center: [47.10, 5.00],  zoom: 8  },
+  "Bretagne":                    { center: [48.10, -2.90], zoom: 8  },
+  "Centre-Val de Loire":         { center: [47.50, 1.70],  zoom: 8  },
+  "Corse":                       { center: [42.10, 9.10],  zoom: 8  },
+  "Grand Est":                   { center: [48.60, 6.50],  zoom: 7  },
+  "Hauts-de-France":             { center: [50.30, 2.80],  zoom: 8  },
+  "Île-de-France":               { center: [48.85, 2.35],  zoom: 9  },
+  "Normandie":                   { center: [49.10, 0.10],  zoom: 8  },
+  "Nouvelle-Aquitaine":          { center: [45.00, 0.30],  zoom: 7  },
+  "Occitanie":                   { center: [43.70, 2.50],  zoom: 7  },
+  "Pays de la Loire":            { center: [47.50, -0.80], zoom: 8  },
+  "Provence-Alpes-Côte d'Azur":  { center: [43.90, 6.10],  zoom: 8  },
+  "Europe":                      { center: [50.50, 10.00], zoom: 4  },
+};
+
+document.getElementById("regionFilter").addEventListener("change", () => {
+  updateMap();
+  const val = document.getElementById("regionFilter").value;
+  if (val === "") {
+    map.setView([46.8, 2.5], 6);
+  } else if (REGION_VIEWS[val]) {
+    map.setView(REGION_VIEWS[val].center, REGION_VIEWS[val].zoom);
+  }
+});
 
 /* =========================
    Tout afficher
@@ -787,6 +811,7 @@ function toutAfficher() {
   document.getElementById("tagAsso").classList.remove("tag-actif-asso");
   document.getElementById("tagPolo").classList.remove("tag-actif-polo");
   document.getElementById("regionFilter").value = "";
+  map.setView([46.8, 2.5], 6);
   updateMap();
 }
 
