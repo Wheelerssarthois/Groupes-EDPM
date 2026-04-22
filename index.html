@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Carte des groupes EDPM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
+
+<style>
+body { margin: 0; font-family: Arial, sans-serif; }
+
+#topbar {
+  padding: 8px 10px;
+  background: #f2f2f2;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#topbar label {
+  font-size: 13px;
+  color: #444;
+}
+
+#container {
+  display: flex;
+  height: calc(100vh - 50px);
+}
+
+#map {
+  width: 75%;
+  position: relative;
+  z-index: 1;
+}
+
+#sidepanel {
+  width: 25%;
+  border-left: 1px solid #ccc;
+  background: #fafafa;
+  overflow-y: auto;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+#sidepanel-header {
+  padding: 10px 12px 0 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+#sidepanel-header h3 {
+  margin: 0 0 2px 0;
+  font-size: 12px;
+  color: #888;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#sidepanel-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+#sidepanel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+#sidepanel-empty {
+  padding: 20px 12px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+.info-bloc {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.info-bloc-titre {
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #005587;
+  margin-bottom: 5px;
+}
+
+/* Badge activité */
+.badge-activite {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* Image pleine largeur */
+.panel-image {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+  margin-bottom: 10px;
+  cursor: zoom-in;
+  object-fit: cover;
+  max-height: 200px;
+}
+
+/* Liens simples */
+.lien-simple {
+  display: block;
+  color: #1a0dab;
+  text-decoration: underline;
+  font-size: 13px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.lien-simple:hover { color: #888; }
+
+/* Légende */
+.leaflet-popup-content-wrapper { min-width: 200px !important; }
+.leaflet-popup-content {
+  max-width: 320px;
+  min-width: 160px !important;
+  margin: 8px 30px 8px 12px !important;
+}
+.leaflet-popup { max-width: none !important; }
+
+/* Recherche */
+#searchResults {
+  position: absolute;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border: 1px solid #ccc;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+  z-index: 2000;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  color: #333;
+  padding: 4px 0;
+}
+
+.search-result {
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.search-result:hover { background: #f0f0f0; }
+
+.tag-actif-groupe { background: #1565C0 !important; color: white !important; }
+.tag-actif-asso { background: #E65100 !important; color: white !important; }
+.tag-actif-polo { background: #6A1B9A !important; color: white !important; }
+
+.etiquette-recherche {
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #4a90d9;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #1a1a1a;
+  padding: 3px 7px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  white-space: nowrap;
+}
+
+.image-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+  cursor: zoom-out;
+}
+.image-overlay img {
+  max-width: 90%; max-height: 90%;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.6);
+}
+
+/* ========================
+   MOBILE
+   ======================== */
+@media (max-width: 768px) {
+  #container { flex-direction: column; position: relative; }
+  #map { width: 100% !important; height: 100vh !important; }
+  #sidepanel {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100% !important;
+    height: 50vh;
+    border-left: none;
+    border-top: 2px solid #005587;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+    transform: translateY(calc(100% - 40px));
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+  #sidepanel.open { transform: translateY(0); }
+  #tiroir-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0 4px 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  #tiroir-handle::before {
+    content: '';
+    width: 36px; height: 4px;
+    background: #ccc;
+    border-radius: 2px;
+  }
+}
+@media (min-width: 769px) { #tiroir-handle { display: none; } }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <label>Rechercher :</label>
+  <div style="position:relative;">
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Nom du groupe…"
+      style="padding:4px 8px; width:220px; border:1px solid #ccc; border-radius:4px; font-size:13px;"
+    >
+    <div id="searchResults"></div>
+  </div>
+
+  <label>Filtres :</label>
+  <button id="tagGroupe" onclick="toggleTag('groupe')" style="padding:4px 10px; font-size:13px; border:2px solid #1565C0; border-radius:20px; background:white; color:#1565C0; cursor:pointer; font-weight:bold;">📱 Groupe réseaux sociaux</button>
+  <button id="tagAsso" onclick="toggleTag('asso')" style="padding:4px 10px; font-size:13px; border:2px solid #E65100; border-radius:20px; background:white; color:#E65100; cursor:pointer; font-weight:bold;">🏛 Association</button>
+  <button id="tagPolo" onclick="toggleTag('polo')" style="padding:4px 10px; font-size:13px; border:2px solid #6A1B9A; border-radius:20px; background:white; color:#6A1B9A; cursor:pointer; font-weight:bold;">🏑 Polo Wheel</button>
+
+  <label>Région :</label>
+  <select id="regionFilter" style="padding:4px; font-size:13px; border:1px solid #ccc; border-radius:4px;">
+    <option value="">— Toutes —</option>
+    <option value="Auvergne-Rhône-Alpes">Auvergne-Rhône-Alpes</option>
+    <option value="Bourgogne-Franche-Comté">Bourgogne-Franche-Comté</option>
+    <option value="Bretagne">Bretagne</option>
+    <option value="Centre-Val de Loire">Centre-Val de Loire</option>
+    <option value="Corse">Corse</option>
+    <option value="Grand Est">Grand Est</option>
+    <option value="Hauts-de-France">Hauts-de-France</option>
+    <option value="Île-de-France">Île-de-France</option>
+    <option value="Normandie">Normandie</option>
+    <option value="Nouvelle-Aquitaine">Nouvelle-Aquitaine</option>
+    <option value="Occitanie">Occitanie</option>
+    <option value="Pays de la Loire">Pays de la Loire</option>
+    <option value="Provence-Alpes-Côte d'Azur">Provence-Alpes-Côte d'Azur</option>
+    <option value="Europe">Monde (hors France)</option>
+  </select>
+
+  <button
+    onclick="toutAfficher()"
+    style="padding:4px 10px; font-size:13px; background:#2E7D32; color:white; border:none; border-radius:4px; cursor:pointer;"
+  >👁 Tout afficher</button>
+
+  <span id="compteur" style="font-size:12px; color:#666; margin-left:4px;"></span>
+</div>
+
+<div id="container">
+  <div id="map"></div>
+
+  <div id="sidepanel">
+    <div id="tiroir-handle" onclick="toggleTiroir()"></div>
+    <div id="sidepanel-header">
+      <h3>Groupe EDPM</h3>
+      <div id="sidepanel-title">—</div>
+    </div>
+    <div id="sidepanel-content">
+      <div id="sidepanel-empty">Cliquez sur un marqueur pour voir les infos.</div>
+      <div id="panel-infos" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="imageOverlay" class="image-overlay" onclick="closeImageOverlay()">
+  <img id="overlayImage" src="" alt="">
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script>
+/* =========================
+   Utilitaires
+   ========================= */
+function normalize(str) {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+/* =========================
+   Données
+   ========================= */
+const etablissements = [
+{ nom: "95 Ride Trott'", lat: 49.0136772, lng: 2.0628472, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/348419687_3420010434878352_4185920477916601562_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=4JjkvJDqYKkQ7kNvwH5CcLm&_nc_oc=AdrwunRBkWVUr_qZh3ncXIJsO54N4c0VoAOaoBE01Ft_ThrQxYkaMSlkTQ2-3ZU5IxQ&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=JPLhDuO_oC623rSwOi0-Qw&_nc_ss=7a3a8&oh=00_Af1lQ-zv7qqNyblVSL7J5bPqpuWTZmasOAxd5yZPCNvxCw&oe=69ED2CA3", urlfb:"https://www.facebook.com/groups/200046369522158", histoire: "Salut les Riders, ce groupe est ici pour tous ceux qui voudraient faire un ride dans le Val-d'Oise et ses alentours et regrouper un maximum de personnes." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "ALSACE RIDERS", lat: 48.0819469, lng: 7.3572854, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/142651666_3770278923035415_5539467207151910887_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=LzI4wY1e3Q4Q7kNvwE0FFRC&_nc_oc=AdqO15nBdRWDlxaNer95IzQSgEhB45lIucvJoH63JdHwIdPgo3Feh4xvFKv3Flq95II&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=BdywSFbw08VAiEAcpvlDSw&_nc_ss=7a3a8&oh=00_Af00KKIn-oRlKMTcssx-zGt5sySGf0aLWHKLAIHoP_wB-w&oe=6A0ED0A3", urlfb:"https://www.facebook.com/groups/2768346410069064", histoire: "Passionnés de e-scooters, nous nous retrouvons entre copains depuis quelques mois pour rider. Vu l'engouement pour les trottinettes électriques et le nombre croissant de riders en Alsace et plus particulièrement à Colmar, nous souhaitons vous proposer de nous rejoindre.  Notre philosophie : le partage autour de cette passion commune ! Tous les engins EDPM sont les bienvenus! monoroues, gyropodes, segways, trottinettes électriques... L'objectif est de faire minimum un ride par mois (en fonction de la météo) le WE au départ de Colmar (place RAPP). RAPPEL IMPORTANT : le port du casque et gants est fortement recommandé / L'assurance en responsabilité civile est OBLIGATOIRE pour se joindre à nous." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Balades électriques haut Beaujolais", lat: 46.2460962, lng: 4.7865561, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/332907628_703771414817440_8856601219254761696_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=g0EntG0gOWEQ7kNvwEYAqx4&_nc_oc=AdqeSuUjlS-a7jmPHLSycESZ5uNQlUQ8_oxT2miHOnmh84F-Iz5vYXjRXRA4I8blrJc&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=wC8nMHnZLUh_LM0eZRnoGg&_nc_ss=7a3a8&oh=00_Af3TZLMDwHtAIc0Mnp5dhzl602siib0CubvJkzwEFm5BnA&oe=69ED4B4E", urlfb:"https://www.facebook.com/groups/571164188305922", histoire: "Groupe créé pour les utilisateurs de tous les engins électriques pour pouvoir se faire des balades dans notre secteur." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Communauté des Wheelers de Lorraine", lat: 48.6930629, lng: 6.177505, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t1.6435-9/49833671_2029026963842735_8824857079614275584_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=upm_7heI__IQ7kNvwFQ-YTv&_nc_oc=AdqgPURIAi1_WUOiDqf20rzj1vgQWrTHyV2fgUaEgNQi_CZW_OskRnEglgzKJlF53oY&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=zqTjB9QqsF7TvDF6j9kccQ&_nc_ss=7a3a8&oh=00_Af0_HLQfVRARVfAQ2uELCne4IUw2R2oATvBfrZIXMSaKBg&oe=6A0ED574", urlfb:"https://www.facebook.com/groups/2015786625173924/?ref=pages_group_cta", histoire: "Bienvenue dans le groupe des 'Les Wheelers de Lorraine' ! Si vous êtes intéressé par l'ecomobilté et l'esprit de partage ce groupe est fait pour vous. Nous acceptons tout les  véhicules de déplacement individuel." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Customs Wheels & Wheelers International", lat: 45.8051622, lng: 4.7534847, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/135456093_10218290178793427_2752089360057092787_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=A5evn6wNXXQQ7kNvwGDccKw&_nc_oc=AdppQ_1AL097KSz0lLyLhvy834KchKyiH2T-NqLq5kZjrF9q4iTDLJa2Rht1uZd5894&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=H3v1cgPH-VZ8AEeYhUqYXA&_nc_ss=7a3a8&oh=00_Af31kzi4aEXVvGunaE7YEczZoT4u4B-YNN49S6NL7mXh8w&oe=6A0EC771", urlfb:"https://www.facebook.com/groups/389314325505616", histoire: "Vous : customisez, personnalisez, améliorez, vos roues et/ou vos équipements de pilote ? Partageons nos idées, techniques et créations ;) photos vidéos, techniques, produits dédiés ou pas à la wheel ou à son pilote. Grand randonneurs, citadins, offroadeurs, Bienvenu à  vous !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "ELECTRIC RIDERS MONTPELLIER", lat: 43.6104094, lng: 3.8708906, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/171048788_4217432671697974_3125954215433493959_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=7sYGsJ4MbFAQ7kNvwHzHVVt&_nc_oc=AdpCXlq0lH5_AvqLNobVIn-5Qy89QQacpc5kgtZ0QBO7uLFvWlcQ9xk9jN6gsn_xtWo&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=4l6xKEE0JRIR3N7EMpYeLA&_nc_ss=7a3a8&oh=00_Af2LmFoSf9FGhCIJKeHhuXjOz3ZE7OXjJsKaYFvcfmx9fw&oe=6A0EDB2F", urlfb:"https://www.facebook.com/groups/761654554575765", histoire: "Ride. Rencontres. Partage. Bonne humeur. Balade. Entraide. Respect. Esprit ride. Un peu de Chill. Et on est bon !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "E-Riders Angers", lat: 47.4689586, lng: -0.5545452, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/481238959_1148141783766243_4728277093299518380_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=2a1932&_nc_ohc=uzP3Zwp1-XYQ7kNvwHpcTah&_nc_oc=Adqa4xdRDOvF8t3gZc1U8_ga5Rk-XXbYaNp0N2S5JDyHSYTqOPmeGFfZ6tdcVb76plU&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=y_ad9xgmwiiGYzC-9z_rWA&_nc_ss=7a3a8&oh=00_Af3eeUcir_LCAPdaSLDUFVivqU6EmR4maYuuXezIF6fKFQ&oe=69ED4AA6", urlfb:"https://www.facebook.com/E-Riders-Angers-112032656835724", histoire: "Association créée le 21/09/2019 R.N.A : W491019516 Objet :  Promouvoir l'utilisation d'EDPM électriques (trottinettes électriques, gyroroues, skates électriques) prévention et sensibilisation au code de la route auprès de de la population et surtout auprès des plus jeunes organisation de balades et découvertes de la région angevine." , siteinternet: "" , youtube: "https://www.youtube.com/channel/UCchEABBAn2e3gWfaB3JySgA"  , instagram: ""  },
+{ nom: "Escape Rides", lat: 48.8612785, lng: 2.3347201, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/240370893_337217454763881_8141089356370494099_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=MhLLqU5adCoQ7kNvwFDPcai&_nc_oc=AdqEmmpzDJuMk0QMUvWPKR5UP5tT05jeorcHl3EP_adIcdiK_3PnZsYZJ6DXzsPPGdM&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=DCnm83UcPjQMAt3nQKCPww&_nc_ss=7a3a8&oh=00_Af0Gf32jxUZQu3Ol3I_Gr83_lEzdKS6rkjGs8IF9g_dpIQ&oe=69ED50F0", urlfb:"https://www.facebook.com/groups/311373940134408/about", histoire: "Rejoins les rides de Escape rides. Que tu sois en trottinette, ou autre." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Esprit Roue", lat: 48.8534305, lng: 2.3478267, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/476338468_934443905501238_6872333422102891254_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=2a1932&_nc_ohc=GVvTPjCKAvIQ7kNvwGGMipN&_nc_oc=AdoeW1jQYgW6rIR1LSo8OqMWIB0kmYqyvtTgttA5s_L2OBL71K3y3KM17p5K_b0G_gE&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=Lp2mCw9wx7tllZnXnA-iFQ&_nc_ss=7a3a8&oh=00_Af10pFXLXR7MyOseLr0Yutv6_nXhfl7BgGf5DdIzNXbNFA&oe=69ED2BD9", urlfb:"https://www.facebook.com/groups/EspritRoue", histoire: "Communauté francophone autour des nouveaux véhicules électriques." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Events'n Wheels", lat: 42.7872935, lng: 3.0382003, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/472259669_1262159335704312_3366277359082180504_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=2a1932&_nc_ohc=9g-WwAJV5vIQ7kNvwEkvcaF&_nc_oc=Adr8nARD1dzepBGFOjtORQJU5FQVD3W5RWY-LNdgOkbOQRHkGiXKYDp8T-L78pfAtS0&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=s4rcTPXC-6svX89HOShu7g&_nc_ss=7a3a8&oh=00_Af1wNEyLBl8BvTx6-MqzkkPlkVuVQPmOHRc_Kld26K2l9Q&oe=69ED420C", urlfb:"https://www.facebook.com/eventsnwheels/about", histoire: "Association créée dans le but de promouvoir la glisse électrique via la création et la participation à des événements, des démonstration et initiations." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Forum des wheelers/riders du Nord", lat: 50.6200773, lng: 3.0704746, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/347382642_210442878607000_5137551002516284584_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=25d718&_nc_ohc=-XAOyNfstwEQ7kNvwGvQgly&_nc_oc=AdqfeRHw_VWFYWfx2K8I0Yg8ye_D4TbhXh7Xy-UBOTgstq4vZ8F3k6KW_BnfF0cRl5U&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Ngj3aOwxD2-NWLEnDaN_Sg&_nc_ss=7a3a8&oh=00_Af24KYg-mgap1dCSSmiG6cNdFCMkPily1YhJcbTYcaqGjw&oe=69ED397A", urlfb:"https://www.facebook.com/groups/forumdeswheelersdunord", histoire: "Groupe géré par Association Wheelers du Nord. Ce groupe est ici pour permettre d'avoir un lieu d'échange entre tous les pratiquants du Nord et d'ailleurs bien sûr. Il est gérer par le staff de l'association WDN. Etre membre de ce groupe Facebook ne veut pas dire être  adhérent à l'association." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Forum Wheelers de Moselle", lat: 49.1192941, lng: 6.1786004, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/71039787_125039645553369_8031427438649016320_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=25d718&_nc_ohc=z1lwvQlEBWcQ7kNvwHSYLiq&_nc_oc=AdqBYOzqVAMWVhxu0CaAK66fQ_k792A1rnuBJodg19vDeWLgZ4v-DAT3Mjkhper_qdo&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=bhsj9h7U45W5yng0yjr_Dw&_nc_ss=7a3a8&oh=00_Af2EkRB8fj2wgqy2mIRGeS3ChZuijn7Sz73b9knoif_b3w&oe=6A0EF073", urlfb:"https://www.facebook.com/groups/Wheelers57/about", histoire: "Groupe géré par Wheelers de Moselle. Si vous souhaitez vous exprimer, parler des sorties ou poser des questions sur nos véhicules, rejoignez notre groupe ! " , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Gyroroue à Rennes (35)", lat: 48.1146235, lng: -1.6702528, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/192203389_4226503464095662_6371895331472708336_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=25d718&_nc_ohc=z8vxVb6qNKsQ7kNvwHqjfj9&_nc_oc=AdoELeVKo2UHr4-aMlQlYLH-WytHMC2KyVJbcNpOo3sBfNe2_j5NZKk1kwpLTZSV2PE&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=Y9CwYJi3YPdSypqR9MTEeQ&_nc_ss=7a3a8&oh=00_Af176Vus6vfYlUqBORq8foh-SIpN3yFpJKHUA1SgJbxnKQ&oe=6A0EEA6D", urlfb:"https://www.facebook.com/groups/1142367639563973", histoire: "Bienvenue dans le groupe 'Gyroroue à Rennes' Groupe de discussion autour de la gyroroue et d'organisation de balade à Rennes et ses alentours." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Gyroroue Wheelers de Lille et alentours", lat: 50.6319518, lng: 3.068096, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/468098389_10236341681581001_8964143190219535667_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=25d718&_nc_ohc=2vpE1fuE4GIQ7kNvwFvuSyM&_nc_oc=AdqHNgeWrTzKz9ZwBmE5UBEFnDaV6E1FZApNLFlVZ_onlbqp3-3pSNUozzR4JW7A27I&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=34YNU7HDaSA5Ze1obu3H_A&_nc_ss=7a3a8&oh=00_Af3JxUtXa2JhhrTwG77DybabZUk_DBXLezWkzHe0WpeMhg&oe=69ED42E7", urlfb:"https://www.facebook.com/groups/530558067141896", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "J'irai RIDER chez vous", lat: 48.8454201, lng: 2.2887318, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/540484036_10172496433565331_9082944413081588011_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=PujY-_oTr0wQ7kNvwFDVxSz&_nc_oc=Adrma8ApZRckFbzEye3UelksZSxdZ8GCDbq5c8Blquk87iTJbqMYNrRO5S6I7jLJzkU&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=5h1jrQE_0C1WN-Rwso01xg&_nc_ss=7a3a8&oh=00_Af0zv8VRdR0q5eUt4imo5B5-6aet7W0qQXaXw7B0kS6ECQ&oe=69ED60E3", urlfb:"https://www.facebook.com/groups/JRCVgroupe", histoire: "Association Loi 1901 crée le 08/05/2020 R.N.A : W751256566 Objet : Rassembler et fédérer en communauté amicale des utilisateurs français d'engins de déplacement personnel motorisé (EDPM) ; créer, d'organiser et d'animer au minimum 5 rassemblements d'utilisateurs d'EDPM dans toute la France chaque année. " , siteinternet: "" , youtube: "https://www.youtube.com/channel/UChWmn33Ul_ngRQcs37eLCjQ/videos"  , instagram: "https://www.instagram.com/jrcv_team/"  },
+{ nom: "la bonne trot ! ... Des tourangeaux !", lat: 47.3660724, lng: 0.6815588, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/448524733_785038460367021_58103608934731535_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=DAbv9X28OhEQ7kNvwEnoXyL&_nc_oc=Adqw48OzK2IIgyl5XrS8HH9K9M_fPsU5n_DflMkwsy9lu-Kv9blSg4Eu_p5twzo3RAs&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=2Fg6fTy83N5NoObFXg_KYQ&_nc_ss=7a3a8&oh=00_Af2ahpkhkO01EkinnoQzNfwjOTOojfm5eXWBqJilFy6wdA&oe=69ED4487", urlfb:"https://www.facebook.com/groups/501833800835316", histoire: "Groupe dédié à nos chères trottinettes toutes marques confondues ! info, panne, accessoires, photo et organisation de ride dans notre superbe région." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "La Guizmo Familly", lat: 47.6227977, lng: 6.1624288, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/130307246_4958549504185188_5171256791032824321_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=25d718&_nc_ohc=rNbwkfXvGwEQ7kNvwEpVDfx&_nc_oc=AdqZRprIHrV3GGhr4Hy1Ll0DsrWSv-nEcIhqE7ENPiT6hq_tJt8GjsB37SN73Wf6k40&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=32_D-uwDzErJR3rJomRG7Q&_nc_ss=7a3a8&oh=00_Af0FWeYtPHr2wOmqMURZ1CMpe_b_TYYCWcteSczioRWA8A&oe=6A0ED3BD", urlfb:"https://www.facebook.com/groups/313601509589535", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Le Havre Riders76", lat: 49.5079518, lng: 0.0782816, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/216543167_550029812698556_4739899158199745352_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=W62dxqP3iWUQ7kNvwG7TmZz&_nc_oc=AdoI5Rf0mssfx4ARIxyo8d-WxRNvRuK-WSwWQXY8x8ZnJ2bMei8rrFT6PGAqoIDGWzM&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=oV5UWzJqsOThY-rG-At3Kw&_nc_ss=7a3a8&oh=00_Af37OI3QeyQDROeoMauYAm7qUQvCH0I1OAgV-sGPzYPa4Q&oe=69ED5406", urlfb:"https://www.facebook.com/groups/2965187777103232", histoire: "Tous les Riders dans le 76 et surtout autour du havre pourront mettre leur ride prévu et fait avec photos. Ce groupe est créé pour le développement des Edpm ,bien sûr pour faire de bons rides ensemble. Respect de chacun et bons rides à tous." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Chouettes Wheelers", lat: 47.3214012, lng: 5.041401, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/453847396_10232445855278099_6949568101521305197_n.jpg?stp=dst-jpg_s960x960_tt6&_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=3zVuBYDbxYsQ7kNvwFXX2rP&_nc_oc=AdpN2WhO76-BlpJgXohU_HyG9r4UDpRXplVR7CI3cDvXxhN6qeOtUphseGWs_UNVBf8&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=7_IUhBsKZ---IpX6T906xg&_nc_ss=7a3a8&oh=00_Af3o5cQE0hgpxVxVKNBA2ICAQnhCskkTf9a8bbcumFM4xg&oe=69ED4954", urlfb:"https://www.facebook.com/groups/leschouetteswheelers", histoire: "Bonjour les ami(e)s Wheelers. Cette page a pour but de partager nos expériences, se rencontrer et organiser des balades dans le respect du code de la route et de ses usagers." , siteinternet: "" , youtube: "https://www.youtube.com/channel/UC07n5HzZQfgofJKOW2K8c3g/videos"  , instagram: ""  },
+{ nom: "Les Chtitrotteurs Lillois Lille Nord Trottinette Velo Sk8 Moto Electrique", lat: 50.6200005, lng: 3.0450761, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/94483305_10222156803407764_3871389997701529600_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=5X513g4dnDgQ7kNvwGGDzQh&_nc_oc=Adpxx3vpG-nptT6t-XzJ7NnlyJ0z4e82S2dejd3bTNIWq05Ojap39Rrlfv5JE5zB_Aw&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=WqiNIiWdVp9zSd546a5xqA&_nc_ss=7a3a8&oh=00_Af0FtFUS2mVxYOo-bgAlicEIOm7cP9ILHt0WPaRIX12BAQ&oe=6A0EEB79", urlfb:"https://www.facebook.com/groups/chtitrotteurs", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les E-Riders Lille", lat: 50.6227118, lng: 3.0591019, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/644535744_10240384404045627_7821963141621539999_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=fJHquPq89I0Q7kNvwF-I8r4&_nc_oc=Ado2Q5r3a9IO_m216cU5YHtIfLQk-b8eSLyF33Hutc1-fyvIFlwPKyPuzp75MRP7H3M&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=SUiLi1vOI4FG_ftZdRokPQ&_nc_ss=7a3a8&oh=00_Af3nJKC0tkIa0q_jcCxS9UcsN20TMGtaP73xDYTFTRoVNw&oe=69ED56E9", urlfb:"https://www.facebook.com/groups/1474014116118519", histoire: "Lille et alentours avec la section Valenciennes: Organisation de rides, conseils, aide à l’entretien … Groupe de passionnés de véhicules électriques (trottinette, gyroroue, moto, skate, vélo et tous autres EDPM originaux) N'hésitez pas à poser la moindre question. On est là pour se réunir avec une même passion dans le respect et la bonne humeur ! Alors, rejoins-nous que tu sois lillois(e), valenciennois(e), douaisien(ne), de la côte ou d’ailleurs !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Riders Rochelais", lat: 46.165248, lng: -1.1279595, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/357497987_10227686250134589_1049114040410019337_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=1lsd6rsmgPAQ7kNvwEBIrD2&_nc_oc=Adrf7YDxoCAgpPgSLnu3KCk-T9sjvN1oFjZu0kehH5EQ6DrR5Xo4qW2kIDYG6drsRc0&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Chil6lfeuHhZvrE5JXCHjA&_nc_ss=7a3a8&oh=00_Af1sI4w5ta1rHVQQ7ZCoo3Ud041PmSzGdH1CEmNUXw_LPQ&oe=69ED39C1", urlfb:"https://www.facebook.com/groups/862616467621242", histoire: "Echange entre wheelers des trois pertuis: breton, antioches et maumusson." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les trotteurs normand", lat: 49.1758941, lng: -0.3599201, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/199895414_10220062266129747_896454907735388290_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=RZKoYSaeykoQ7kNvwGF3DTz&_nc_oc=AdqF6k9cxw1MZ_fe-GA0fGZc6qWo-L-ZUaGPFo2CeSY3cH_oyvMxaAwglZ_KX6MtyS4&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=dOKDYTLJ7CggDT1Bz71uzQ&_nc_ss=7a3a8&oh=00_Af05wPYu4l4iohAdjJnRAhOCVzjexDNWdv9lCacmPPEwXQ&oe=6A0ECE05", urlfb:"https://www.facebook.com/groups/3286991347978916", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Trottinettes Électriques de Montargis", lat: 47.998021, lng: 2.730692, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/65373448_10214026320432177_16484707252305920_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=ZXGRnhTYiNUQ7kNvwE3RcbC&_nc_oc=AdrHDerGGJ0F5OvgU-rhlvIgGeMEVxTExN0Cq7RLeuH206pDpguPy14WXocBkAXjD84&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Djgi4mR5nk4U4SA27yWJvQ&_nc_ss=7a3a8&oh=00_Af3QruM4CAnL9rldiVQpoaigAVG4nzcx_jqy2WNhWpWECw&oe=6A0EE98E", urlfb:"https://www.facebook.com/groups/2164476937000758", histoire: "Promouvoir la pratique de la trottinette électrique (et engins assimilés) : l'initiation, l'organisation de sorties en groupe et de rassemblements, manifestations visant à partager et promouvoir le concept de la mobilité urbaine dite propre et écologique et facilité la communication avec nos élus locaux. " , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers D'Alsace", lat: 48.57025, lng: 7.77926, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/440479821_980106627451884_7469382860824151251_n.png?_nc_cat=110&ccb=1-7&_nc_sid=2a1932&_nc_ohc=tly5ga9DhWoQ7kNvwGnI-O2&_nc_oc=AdrwV8a72Oe64alrTX2nAtHRHq9nQSU9OWKe1Q98R4qT9HUfUugZKl9GXan_YCnFiKA&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=LWeRThrcpQ88eh0D6zyfSA&_nc_ss=7a3a8&oh=00_Af2cv68i4qIuqTgZrfoqfn70S_1skKQ5p_wIAl-Rp_x2Bw&oe=69ED3882", urlfb:"https://www.facebook.com/leswheelersdalsace", histoire: "Association de droit local qui vise à promouvoir l'écomobilité et la pratique citoyenne des EDPM." , siteinternet: "" , youtube: ""  , instagram: "https://www.instagram.com/les.wheelers.dalsace.asso/"  },
+{ nom: "Les wheelers de Franche Comté", lat: 47.4544719, lng: 6.688257, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/55802462_10158192668267542_2883878481211424768_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=J6ol9X3P9QsQ7kNvwETnq8T&_nc_oc=Adp_MV6aKqHNDCpOiopKAHTxOi-K3KKPdK1VzhNKpoD0DrULcPRzm6rG-_erXdYC7QY&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=4Pf6laR5j-rGFsxvCdqaiQ&_nc_ss=7a3a8&oh=00_Af2v0i9fg35twCwfVC9-1G337tT4Y8lg12NsJRZZB-2VxA&oe=6A0EF9B8", urlfb:"https://www.facebook.com/groups/1600162990113381/", histoire: "Un lieu de rendez-vous pour les pratiquants de monoroues, gyropodes, segways, trottinettes électriques. Basé à Colombier Fontaine et rayonnant dans toute la région et même au delà, chez nos voisins Bourguignons, Alsaciens, Allemands et Suisses. Ce groupe a pour but, de favoriser les rencontres entre passionnés de mobilité alternative, de proposer des sorties ou d'autres événements." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les wheelers de Picardie", lat: 49.8938876, lng: 2.2956204, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/117956474_10217297994033136_5655297195748370204_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=nSj-YgorT5oQ7kNvwFJJ58O&_nc_oc=AdqRR3WO1vV5a7M5yEyjaAaZAWX76thPcz8iE4OGKr6O5QLHhnr4zM3VyfJGKEQagt4&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=5sWzsmTukLxYxbleSu3MZQ&_nc_ss=7a3a8&oh=00_Af3d85qoHHEKPaa0hun7NWM3jv3SooaXFu5nqLcWpOnKTQ&oe=6A0EF7A0", urlfb:"https://www.facebook.com/groups/494985730923496/", histoire: "Bienvenue ici ! Si vous êtes là, c’est que vous partagez d’une façon ou d’une autre notre intérêt pour les appareils électriques de mobilité urbaine, qu’il s’agisse de monoroues, gyropodes, segways, trottinettes électriques, vélos électriques, scooter électrique, skateboard à moteur ou de tout autre concept farfelu. Ce lieu de rendez-vous pour les pratiquants a pour but, d'informer, de favoriser les rencontres entre passionnés de mobilité alternative, de proposer des sorties ou d'autres événements. Groupe créé le 22 juillet 2018. Amiens · Château-Thierry · Compiègne · Hirson · Soissons · Beauvais." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les wheelers de Tours", lat: 47.4016477, lng: 0.6672067, activite: "", images:"https://www.facebook.com/images/groups/groups-default-cover-photo-2x-compressed.png", urlfb:"https://www.facebook.com/groups/926014104231474", histoire: "Vous pouvez partager sur ce groupe vos sorties et vos expériences avec ces moyens de locomotion fun et moderne." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers Des Marais", lat: 47.4492897, lng: -2.3173126, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/334056031_893299435308277_2015085717599351421_n.jpg?stp=dst-jpg_s720x720_tt6&_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=9I7i2LNrijoQ7kNvwHmFFRI&_nc_oc=AdqVc_7W1JJDG8N0JpbZjgtxDoL37eozrbNk-rJ9EhtNOBzeNDo6HTstRlmAF8jQ0SA&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=TXIngv_S3mbVHwqRpGtrdA&_nc_ss=7a3a8&oh=00_Af1eSaYumzWrNseDfKw4EKbd7IPF3t9wbdfj43q-7at77Q&oe=69ED48EB", urlfb:"https://www.facebook.com/groups/3026761534311453", histoire: "Rencontre EDPM de tout style." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers d'Ile de France", lat: 48.8466253, lng: 2.4756596, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/471274099_550818871112609_8898165642574431446_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=105&ccb=1-7&_nc_sid=2a1932&_nc_ohc=MjE-Efie7QUQ7kNvwHddPxg&_nc_oc=Adp570QZ3W1nanfFZsqh4D80SvU-VOR3QZbH98xuZsYs56fAcanXDAZIlZpWncB08cM&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=UD2vtgmz8O6e_dsqr6sEVQ&_nc_ss=7a3a8&oh=00_Af26Uo822UTZb63JBIADdk5X5I4Qi-PMCQhroFTPsQJOmA&oe=69ED613C", urlfb:"https://www.facebook.com/profile.php?id=100085535037427&sk=about_contact_and_basic_info", histoire: "Organisation à but non lucratif" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers d'Occitanie", lat: 43.6085545, lng: 3.8795939, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/36064022_10157425733992542_1547236649551790080_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=1OdyuKkVldwQ7kNvwGLJesW&_nc_oc=Adp90xx4sYNHYUywDW2NapdkhwpIu4JFCI6tujHKNXL7vFTV0pO646ATmLfIoeAdMuM&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=jzleI49Qie3QnZpArovwaQ&_nc_ss=7a3a8&oh=00_Af2UOP2LzE526HkItp9HlWFGNRCBFrxuvbuv9amSKFYfxA&oe=6A0ED16E", urlfb:"https://www.facebook.com/groups/190347221669751", histoire: "Destiné en priorité aux habitants ou personnes passant par la région Occitanie, ce groupe est un lieu de rendez-vous pour les usagers de monoroues, gyropodes, trottinettes ou autres skateboards et engins électriques de déplacements individuel. On y partage les projets de sorties, les infos et bons plans (pas de pub intempestive) et autres évènements reliés à l'électro mobilité." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les wheelers d'Orléans", lat: 47.9112124, lng: 1.88592, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/481278428_1198839362245906_6806720907762491003_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=2a1932&_nc_ohc=1e0h5ef5NNEQ7kNvwFmvDix&_nc_oc=AdpVHTj4v5zZqc2zgdH4dFeefkUNCVLRJc8zGYExECkicuHEk4oNvFteDg2mh_IDtI4&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=ic1fm8shkhYcen8-wvD0kQ&_nc_ss=7a3a8&oh=00_Af0tzMq14qFMLDv1HO95twSOa9cbRROgiYUhlEE3pGTlyA&oe=69ED4D50", urlfb:"https://www.facebook.com/OROW45", histoire: "Association des 'Wheelers' d'Orléans à pour but de regrouper et de promouvoir la passion de la gyroroue ou monoroue électrique afin d'informer les futurs utilisateurs sur ce réel moyen de déplacement." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers du 21", lat: 47.3318585, lng: 5.0602838, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/489820730_1140348138105654_7229053447833165390_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=2a1932&_nc_ohc=RPZWbzicphQQ7kNvwGNR1qS&_nc_oc=AdpRsD3wRAtFOJ1YnrScq9tBMNsk71vAOPsI-qXU8EgFWnLLLsNgieVdS9BYa4TnEfQ&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=q5eVHM8j_6v4l8BUOzXYxQ&_nc_ss=7a3a8&oh=00_Af3wl4B1xuYdsbhBfgA7YZABABNvojir77R0HbUKKDEn6g&oe=69ED2BF5", urlfb:" https://www.facebook.com/LesWheelersdu21", histoire: "Groupe de Wheeler Dijonnais." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers du 41", lat: 47.5858983, lng: 1.3318696, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/280199988_5815239295158040_4110980137234219063_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=YEV0JKR4oisQ7kNvwEzZJ_9&_nc_oc=Adq2lHH_Gf6GXAuw0WWUVSUTjcOcVSbbQW32y0jYm-75P3VqqxFgGYYwO1eoIL9bHtM&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=p_kDijIecV8zIaNtkLG-4A&_nc_ss=7a3a8&oh=00_Af1tB9Y49tUZXDa9CGqxg3EydttC1v_WFJYamGsHUhXBGw&oe=69ED5E06", urlfb:"https://www.facebook.com/groups/4877050725751466", histoire: "Salut les wheelers ! Ce groupe a été créé pour tous les pratiquants et amoureux de la glisse urbaine en gyroroue de Blois et sa région ! vous pourrez y partager vos photos vidéos de vos balades organiser des randonnées etc. !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers Du Limousin", lat: 45.83506, lng: 1.2638024, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/645411972_10240196628871113_6833573509873418644_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=25d718&_nc_ohc=ZP9EYSSDgBkQ7kNvwE42zjU&_nc_oc=AdpMF1uMryK8BhZvwM6JeXqglwTylygGpVfidu9exyH7eVHZgjtp15IfQ3_raFKT2Cg&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=g1EV8ouabVogStmHi9ONiw&_nc_ss=7a3a8&oh=00_Af1I7r0FGoAHqfgrhZYL08LDWr4Ly7lEh9h5yxRhZAsunQ&oe=69ED3723", urlfb:"https://www.facebook.com/groups/limouziwheelers", histoire: "Association loi 1901 crée le 27/10/2023 R.N.A : W872016165 Objet : promouvoir et développer la pratique et l'utilisation des EDPM (Engins de Déplacement Personnels motorisés), tels que trottinettes, monoroues, onewheels électriques, etc. Pratique du polowheel." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers Pays de Savoie", lat: 45.8992182, lng: 6.1317139, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/387214977_10232475196202678_6794415666449697779_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=ln6kq5NoMfoQ7kNvwF-EGhX&_nc_oc=AdpAQ1ZkfMea2t0H06FpgNi_QlUvPfXzL_FE8wwr5Rs_wZwRhaMQti2C1ipT6XISrdE&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=_8Y9jgHCHZWQU65hIvnt8g&_nc_ss=7a3a8&oh=00_Af2uxmE0S-hcRCWjCilpBTG0OCuwsNoeXGGdu0nWSLK2Vg&oe=69ED7093", urlfb:"https://www.facebook.com/groups/991145912160827", histoire: "Ici pour partager la passion de la gyroroue, prévoir des balades, demander des conseils." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers Sarthois", lat: 48.0008399, lng: 0.1921744, activite: "", images:"https://cdn.helloasso.com/img/photos/croppedimage-31372ce69c8f4a6a93699a8832d678a6.png?quality=80&width=920&height=240&img_format=webp", urlfb:"https://www.facebook.com/groups/les.wheelers.sarthois", histoire: "Association loi 1901 créé le 31/01/2020 R.N.A : W723016407 Objet : Promouvoir l'utilisation d'Engins de déplacement personnel motorisés (EDPM) électriques, comme la trottinette, la gyroroue ou le skate, par des actions auprès des acteurs locaux et nationaux, publics ou privés. Nous effectuons des animations de sensibilisation et de prévention routière auprès de la population et surtout auprès des plus jeunes. Nous organisons des balades découvertes du patrimoine sarthois et manceau particulièrement. Nous avons aussi une section sportive de polowheel." , siteinternet: "https://leswheelerssarthois.asptt.com/" , youtube: "https://www.youtube.com/@LesWheelersSarthois72"  , instagram: "https://www.instagram.com/leswheelerssarthois/"  },
+{ nom: "Lille Wheelers", lat: 50.6272321, lng: 3.0559273, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/196941998_10225718926618618_2199357647553297728_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=rnP_vt1uMaEQ7kNvwGSiJKK&_nc_oc=AdpJnikJESAEkwQw7Iibo6pY5oNOUFg-K2BzkUCi4Sesj8524FmuL2o5CVa2LcFmgno&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=h3_PXI1YafPeEjQbpjAMsg&_nc_ss=7a3a8&oh=00_Af2M6--0Nt4Iurp66EZN8GxJrXJ5Xp3LwmBE2TL7GzrWSA&oe=6A0EF010", urlfb:"https://www.facebook.com/groups/526309938558854/about", histoire: "Groupe ouvert à tous les utilisateurs et futurs utilisateurs. Tout ce qui touche la Gyroroue à Lille et alentours est bienvenue !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Lo GUEPE Ile de la Réunion", lat: -20.8944669, lng: 55.4864919, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/309263969_471544781684198_284337273435516501_n.png?stp=dst-png_s960x960&_nc_cat=101&ccb=1-7&_nc_sid=2a1932&_nc_ohc=4q4n65E6F0EQ7kNvwGQc5yf&_nc_oc=Adp_jb-v1gWUjg-DbpsHALzJTlMGY_x4zScAqY216l2PcP57moDB3jCPnYSy-6N2__8&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=q4nwCYzwAkUEIys-oD6a0A&_nc_ss=7a3a8&oh=00_Af3yUEiRAwE0vEf0GcZ05VIMOESXbuK2lFGlnIFcXcynyQ&oe=69ED6693", urlfb:"https://www.facebook.com/Guepeur/", histoire: "Lo Group d'Utilizatèr d'Enzin Personel Electrik (Le Groupe d'Utilisateurs d'Engins Personnels Electriques) est une association dédiée à la promotion de la mobilité 'douce'." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "LRS - La Roue Salée", lat: 47.2937305, lng: -2.5132196, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/329054411_747200826836045_7860362428863749641_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=25d718&_nc_ohc=Ng8g1NMtad4Q7kNvwGVXLGs&_nc_oc=AdoWC2D51IXtCo2WvvcyhM8rgnlKnuotEsBCX3vWd_JMVMftrU2QnwNytBW7eaemNTM&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=0DWH6OWSS1cSPBaQ68aBMA&_nc_ss=7a3a8&oh=00_Af0BOjfQnVgl9NyDRgxPbq_9UWeTfEL0SRe-BGz9cypW_Q&oe=69ED3799", urlfb:"https://www.facebook.com/groups/larouesalee", histoire: "Se réunir et échanger autour d'une même passion est un régal. L'envie d'agrandir ce groupe devient un but afin de pouvoir multiplier les échanges et les rencontres entre nous mais aussi avec d'autres groupes de Onewheels ou même d'autres groupes d' EDPM." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "LRWD by ASPTT", lat: 46.1611287, lng: -1.1347052, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/472365776_970082824980065_5474257565132039480_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=2a1932&_nc_ohc=9z5HEf2mWBEQ7kNvwGVd3hd&_nc_oc=AdoF7w-vd3x6Bx0MVHV5AU0qFsa_8SEXnMYOlpcPvNjGyxcb5mBGWh9-yUv4esP62Iw&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=-GgkiC3PsVfoRKa1W_7VwA&_nc_ss=7a3a8&oh=00_Af04PkobQvadunLVZiaWqzMffbD2HMtM2J3zdgSrxdtKWA&oe=69ED372B", urlfb:"https://www.facebook.com/larochellewheeldogs", histoire: "Page associative qui vise à promouvoir une pratique ludique et sportive du Onewheel." , siteinternet: "https://lrwd.asptt.com/?fbclid=IwY2xjawJNHrNleHRuA2FlbQIxMAABHaxM6aWXylMaQ6sWL83QccBMhPopmmPRSQ113DUbTXJANXtZzVqC1NiVhA_aem_ZChNtsv1PxAGaiPO5jyTJA" , youtube: ""  , instagram: ""  },
+{ nom: "May'Wheel", lat: 47.825306, lng: -0.7200397, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/242237590_10159700099974873_1497616157383022046_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=3Nw7Jq4qPGsQ7kNvwFIhU_2&_nc_oc=Adq6sTYj4S-Z4Z-d088Vni6IBNyP4aR-qontLxOmtKS23j_CMpdhUZStEkow-Mjz66Q&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=IujjVGTHUiLwHa24czJ73Q&_nc_ss=7a3a8&oh=00_Af1bTPWkytZno4DBjkYY0iAB3dVzL5lWL7trLBqKcdKcbg&oe=69ED48C4", urlfb:"https://www.facebook.com/groups/307626596986241", histoire: "Ce groupe a pour vocation de réunir les Wheelers, Trotteurs, e-skaters, One-Wheeler... en Mayenne, et de s'organiser des balades en groupe dans la convivialité !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Mobilité'E-TrottRider", lat: 45.1882127, lng: 5.7262178, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/144333126_3822976384415911_6798244593982439644_n.jpg?stp=dst-jpg_s720x720_tt6&_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=6TGSmRKwDGkQ7kNvwHCrbWL&_nc_oc=AdqPMfTyiq8z9mlpTCwsuzkf7WVJNlN4m0YjPpsSN52AaMsMk3nrCkXOZD1IRjBdKPU&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Q9EnrdqvgfrrZlR1jZYzIw&_nc_ss=7a3a8&oh=00_Af1KgVBzLFgBcBnx1FTkq041T1vDGqCT51UDKlg9AV6Tuw&oe=6A0EE522", urlfb:"https://www.facebook.com/groups/438166117372222", histoire: "Bienvenue sur le groupe, amis RIDERS. Ici vous pouvez partager vos photos, vidéos et commentaires ou formuler toute autre demande d’aide. Mon équipe et moi-même serons à même de vous apporter une réponse à hauteur de nos connaissances. Les commentaires  postés sur le groupe peuvent être lus par l'ensemble de la communauté. Le savoir-vivre et la politesse sont donc de rigueur. Nous nous réservons un droit de modération (et suppression sans préavis) pour tous les posts qui nous paraîtraient inapproprié s ou offensants. Je précise que des ‘'RIDES' seront organisés sur le territoire national en tenant compte de l’évolution de la situation sanitaire. Nous avons hâte d’échanger et de 'RIDER' dans la convivialité. " , siteinternet: "" , youtube: "https://www.youtube.com/channel/UC8SAFQ2u7afcRJBu3_v1MMQ"  , instagram: "https://www.instagram.com/atomyktrotts/"  },
+{ nom: "Monkey Riders 49", lat: 47.4714286, lng: -0.5953914, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/306119829_10229168955348144_6824678365240884218_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=u84p2xitfNUQ7kNvwG_vW-p&_nc_oc=Adoah0Hio2Dx9FsVKm7_TAgyOToC8SdlhZ6YqKAvJLw3vqjBJqOJrqaxuT3PNgvVpKc&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=d5GD6lPd0uBq1va9iawDIg&_nc_ss=7a3a8&oh=00_Af2ncjH9wiiZWo_43GsiJ7rN-6dsDj1ZI4IEfdaIxehXqQ&oe=69ED3418", urlfb:"https://www.facebook.com/groups/2156807054337621", histoire: "Objet : Promouvoir l'utilisation d'EDPM électriques (trottinettes électriques, gyroroues, skates électriques) prévention et sensibilisation au code de la route auprès de de la population et surtout auprès des plus jeunes organisation de balades et découvertes de la région  Angevine." , siteinternet: "" , youtube: "https://www.youtube.com/channel/UCchEABBAn2e3gWfaB3JySgA"  , instagram: ""  },
+{ nom: "MTP Mobility - Balades & Passion", lat: 43.6115095, lng: 3.8892347, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/181265018_1112522975890874_1660117644583182066_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=bumxLG47sCoQ7kNvwGW9pFv&_nc_oc=AdoLY9oNxpy2kF5fQUetl7UsT-bJ0aGwTFRLciPEt3NBy7bpqxAd36Zf_gMmgEbmCyI&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=yyq0N4VEojHmVc5LhGTU3Q&_nc_ss=7a3a8&oh=00_Af0laM0xsnkcdefTewqISwTn5IyOtB3A8wikFfOfl9Pb_g&oe=6A0ED683", urlfb:"https://www.facebook.com/groups/1741931309200641/about", histoire: "Bienvenue dans le groupe, ce groupe a été créé pour les personnes habitant à Montpellier et ses alentours afin d’organiser des balades et des rencontres entre propriétaires et passionnés de véhicules électrique !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Naowheel", lat: 47.2050035, lng: -1.5643597, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/480661719_8966717790107011_854482690319146662_n.png?stp=dst-jpg_tt6&_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=c3w4DDiRemAQ7kNvwEOq62x&_nc_oc=Adr1J3abmfS54AYSXwWrxUqf8Aco8_-ZHpBcy8zlXF12KN0KPSCCd3gBntUcLElZn5g&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=IhxIzXBDJeq5h-zpvHH92A&_nc_ss=7a3a8&oh=00_Af1C_ccLQcRKztL0ajFoLlxa1nGL_6P_soJn7Pmxl8Y_Rg&oe=69ED3B3E", urlfb:"https://www.facebook.com/groups/naowheel/about?locale=fr_FR", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Onewheel Fans France", lat: 48.8801376, lng: 2.3086716, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/34645961_383035815518281_4907279677921427456_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=nUgoYimC5QkQ7kNvwGR9o84&_nc_oc=Adr0heTfOeN7X1r0Md564DLwkLliaYLMFhrLIgi-hvSn5WGCe-ncEA3IrqJF3bbo7kI&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Rx6djp502I-YYAC3gs3eMA&_nc_ss=7a3a8&oh=00_Af1UtM2bi3vksn8K_7ZdWM92Wx9JBMPmYTpR-iDMZsoraQ&oe=6A0ED74B", urlfb:"https://www.facebook.com/Onewheel-Fans-France-354119348409928/?ref=page_internal", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Onewheel Riders Paris - IDF", lat: 48.8803987, lng: 2.3101951, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/29425820_10156398687902269_66988604915712000_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=25d718&_nc_ohc=ZeOLa5UltyAQ7kNvwHo_MHI&_nc_oc=Ado5n5glWlgTP2HyJll6wszuajGG6T6UirGFTmpWfZCgiZKde_kLzlWHbO6Iy6DpNrE&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=Pab_zGt3-zmR-yEaW1-2eQ&_nc_ss=7a3a8&oh=00_Af0fv87pEZE1TZK1R4cuVCqI2ZjGFSR-0cBz6mIBlrQjcQ&oe=6A0EDBE3", urlfb:"https://www.facebook.com/groups/532906390238060", histoire: "Groupe de discussion en région Orléanaise autour de la roue électrique." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Orléans, Ride On Wheel", lat: 47.9070483, lng: 1.9116725, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/421991807_7223104051140351_5374316298039452717_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=25d718&_nc_ohc=wwwplBPbfaAQ7kNvwEuuli9&_nc_oc=AdqOeNKzv2cqLJdtKJ3lzEXeWSUhjRu-esPK7vyYPubBbPx4M17MHiHEayAHxTOBDSg&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=SP6LBYHo_pxjmrfIEscq6w&_nc_ss=7a3a8&oh=00_Af0qfWKhJZVPodYFMRCd8yxxjwxocTxWcH7ayeEO8l-BGw&oe=69ED34E4", urlfb:"https://www.facebook.com/groups/281728785564762/", histoire: "groupe d'entraide dédié à l'usage de la trottinette electrique de marque Quickweel et ou d'autres marques identiques en performance,look,caracteristique,toutes modifications qualitatives ....merci" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Quickwheel France users", lat: 46.171353, lng: -1.1638165, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t1.6435-9/200758339_4311330402211390_2483640178227559285_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=NLybmh_Hc1kQ7kNvwFNSIvP&_nc_oc=AdqvNoAqnp_0rCygY9NG9mZ6zSMK8zO0b0O63Q_cpcDf5T6r0IgFpVSpzamAamCiIXQ&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=xcbg-7jIl6wec5UkyxB-Lw&_nc_ss=7a3a8&oh=00_Af0I0EbOoBoZIsg2XQF-y5Dm-pDZ_DmtMPtTB36homLtNw&oe=6A0EF9D0", urlfb:"https://www.facebook.com/groups/2761841120747082", histoire: "Bonjour et bienvenue sur le groupe 'ElecTrick-Ride 47'. Groupe créé dans le but de rassembler les passionnés de 'micro-mobilité' du 47 (et alentours) afin de faire des balades et échanger autour d'une passion commune. A bientôt." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Randos Electrique Agen", lat: 44.2025895, lng: 0.6164338, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/328331480_1140746939970362_2520411528974240025_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=HJIFNIHgYxYQ7kNvwGtTlta&_nc_oc=AdpBePHJZTF2wu3gOTB3_UKCYnuDSqbOh5tJXoNyuXCfyNmdNWWEyKUrgqs78nVlC_k&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=BqFspq49vneJHqSQqrHbPw&_nc_ss=7a3a8&oh=00_Af3a4P_sFTOvPMRMo7h1HfzBERBTcvSRsKwaoNd_FSYnXQ&oe=69ED3A91", urlfb:"https://www.facebook.com/groups/3324616924427881", histoire: "Bonjour et bienvenue sur le groupe 'ElecTrick-Ride 47'. Groupe créé dans le but de rassembler les passionnés de 'micro-mobilité' du 47 (et alentours) afin de faire des balades et échanger autour d'une passion commune. A bientôt." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Ride Unity euc", lat: 48.86488, lng: 2.3204038, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/355514975_201767306171401_6124880715864418368_n.png?stp=dst-jpg_tt6&_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=FzBAC9YFgzAQ7kNvwGoDk_E&_nc_oc=AdqzXBdq4rrQvRKlGgOABAZnSZ4yXterl6v0kYqFLNQwOM8vF2lkhUDA4yn2abhMjbE&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=tkE76z9n5itOJo5kZG5ucQ&_nc_ss=7a3a8&oh=00_Af1Ov5h6ZRSMbPFZ3FvX1XvsIGz-FNZiXScBXdXCfCeyzQ&oe=69ED38B6", urlfb:"https://www.facebook.com/groups/286825360431422/about", histoire: "Ce groupe a pour ambitieux objectif de centraliser tout les rides de Wheel et rien d'autre… Suite au partenariat avec riderland pour partager nos rides les trott à grosses autonomie sont aussi bienvenue mais trottinettes avec amortisseurs fortement conseillé: bronco,nami ou  équivalent car il pourrait avoir des parties offroad. Les participants aux rides pourront s'exprimer dans les commentaires dédier a chaque ride dans le respect et la bienveillance." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Ride'in Nantes", lat: 47.2264081, lng: -1.5651944, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/655694025_26682296864715330_1899888583867553626_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=wqqc7ozwKdEQ7kNvwFCSmlK&_nc_oc=AdrRZb8s8LPaMzDT1zmGpvrlt7Ix9C8_yuhfEuvw-t1vXcBJcUg9TCqhFzD9G8zZOPI&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=l14IqawwUMPghmAXTJyvHA&_nc_ss=7a3a8&oh=00_Af0mCGk_Ya9gvsHYvU9JEmrv3yue7-qCY3d9dvk7dQo80Q&oe=69ED5524", urlfb:"https://www.facebook.com/groups/1445621162115705", histoire: "Riders de tous horizons, venez, organisez des randonnées, à Nantes et dans le département… N'oubliez pas que l'entraide est la base de notre mentalité, donc, une question, n'hésitez pas… Pensez à partager vos randos." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Ride'in Rennes", lat: 48.1170079, lng: -1.6834555, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/117242767_10218778380829984_1359905007315025199_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=25d718&_nc_ohc=cN54cAVWcoYQ7kNvwFccdb7&_nc_oc=AdrmTYWp4V10X4Liy5LeFwdeTA60dh-b4H_IE_yuMsfPMZUSmjpxTUk2OIkZrT5mkGE&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=yU1tKzvHUNqSREz5IhA7fA&_nc_ss=7a3a8&oh=00_Af1jlWGs6QZg7-lQojKoNeLwG2ulfzE5e-SlI_4veSPRuQ&oe=6A0EEDBE", urlfb:"https://www.facebook.com/groups/224821495448670", histoire: "Ici, pas de différences entre trott, wheel, board etc, tout ce qui roule en EPDM est le bienvenu." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Ride'in Vannes", lat: 47.659822, lng: -2.7592516, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t1.6435-9/163595831_1496763933990557_4273720259034825668_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=cax2OeMAr-AQ7kNvwG7ZUC7&_nc_oc=AdqH-_BSiOUP7h9gh5AzIllxFuJwjOGf9Px4BMAQrXl2DOYe2ekJON7bSLBtRtQmFXI&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=N6AP4_euo0aUdmYMuWDjQg&_nc_ss=7a3a8&oh=00_Af12hAnQvmWUnwXU9EPQNBaUxsm2bzd5WjBhSpSa1Ffk3g&oe=6A0EFEF0", urlfb:"https://www.facebook.com/groups/884824892060185", histoire: "Groupe de ride vannetais, tout edpm accepter, invitez vos amis et a bientot en ride." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "RÏDERLAND", lat: 48.8312018, lng: 2.3555083, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/438118181_7943944812316542_1936576556899494869_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=25d718&_nc_ohc=1imt0o047VEQ7kNvwF_FmZ1&_nc_oc=AdphDJm4X6Qe7gpMwvh_WAkW3vxnvwuQr7M7wgeYsFH5_GsEw7bjFqPx0g3-CbkWk8Y&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=96RAoowDSisxkS1NQDtHbA&_nc_ss=7a3a8&oh=00_Af3cqRjaRHkZ47olXWs2eYUn-u3PDJKA0g3vgexe1kAMSA&oe=69ED5469", urlfb:"https://www.facebook.com/groups/1312116878985704", histoire: "RÏDERLAND, Ce n'est plus une légende. C'est un groupe pour les passionnés d'EDPM (Engins de Déplacement Personnel Motorisés)." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Riders 54 (et Grand Est)", lat: 48.6932928, lng: 6.158725, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/461782651_8348783551881169_6388556903540096277_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=25d718&_nc_ohc=_i13_uODrG8Q7kNvwGjP1Ib&_nc_oc=Adr3JNZN7R78VVB1IKrCKIpP7zhH5Cza1pscYmROgPbwJKzUO2LFHMrwKhsWHurd06E&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=_-njaQOgJsc057XmV0a2GA&_nc_ss=7a3a8&oh=00_Af2SY1X6oT1qqfO8rMITgvgfY4_E9AAoL1ZGfKFKcBPFKQ&oe=69ED38DC", urlfb:"https://www.facebook.com/groups/993299537763089", histoire: "Un groupe pour les passionnés du ride dans la bonne humeur et le fun." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Rides au féminin", lat: 47.2058046, lng:  -1.557219, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/473917374_1139846821478325_5453018279043575824_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=2a1932&_nc_ohc=iKSyrLBvvE0Q7kNvwGl4Qna&_nc_oc=AdoQSX-BeWpas1dbAAA-FxIQ2UvcYYMaAGxH3_FhyPEbREcj1qqK1c3LV6CedgKmYts&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=VFL99v_qophJ3yVCahewug&_nc_ss=7a3a8&oh=00_Af3K0QZbq_a7wOynVeiPzSUi-xu6ssr5_1H3Xq22nGQfLw&oe=69ED87A8", urlfb:"https://www.facebook.com/ridesaufeminin/", histoire: "Passionnée de trottinettes électriques et de micro-mobilité électrique en générale et admin de plusieurs grands groupes Facebook sur ce sujet j'ai crée cette chaine pour poursuivre ces échanges et cette entraide qui fait la richesse de ces groupes." , siteinternet: "" , youtube: "https://www.youtube.com/@Ridegirl44"  , instagram: ""  },
+{ nom: "Rouen Electric Rides", lat: 49.4434796, lng: 1.099197, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/213170598_10158833451197740_3232826370969365471_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=25d718&_nc_ohc=ML7WXR8xwsgQ7kNvwHPfFWC&_nc_oc=AdpnyX2P91D7I4wnkguQQ_fNGJz1ejnAns9ugbsWoozd2TO2qI7NQIGi0aPkTFFVnhk&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=qYC4BNWowGJ_cHdTLNoTBw&_nc_ss=7a3a8&oh=00_Af3-LydcdTt6Ch_-rKfMLShVEguYLPEVWLCfx5TBwQuJoA&oe=69ED41D4", urlfb:"https://www.facebook.com/groups/481660052901007/", histoire: "Groupe pour les riders rouennais qui veulent partager leur passion en faisant des sorties en groupe." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Sénart NVEI / Val d'Yerres EUC", lat: 48.7125586, lng: 2.4925197, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/387872571_10159360968517130_7703793889130043254_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=RMzN_kAmOtEQ7kNvwEMd7D7&_nc_oc=Adp9uGjwIEda1DNNHPlgBPnn92GkcvfrdiwuwBkvF9Z1bS51n4pwV-SOb4eQznwYUkM&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=u7G55GSmYtUIiu9IHzEgWg&_nc_ss=7a3a8&oh=00_Af3wtpnnCQEltZgItnI36iNjNuvdwaW5RxKuU924oilMQQ&oe=69ED40C5", urlfb:"https://www.facebook.com/groups/640564353087880", histoire: "A tous les membres de Yerres-Senart NVEI. En accord avec les Administrateurs du groupe, voici les règles. Le groupe est ouvert à tous les utilisateurs de NVEI. Ce site a pour but de promouvoir les edpm de tout type. Nous prônons l'utilisation de protections lors de nos sorties  et nous souhaitons que le casque soit le minimum requis, surtout sur les sorties offroad (Griffon, réveillon, cratères et rallye....). En espérant que ce groupe vous apporte beaucoup de bonheur et surtout vive les nvei. Bon ride à tous. Pratique du polowheel." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "THE WHEELERS / EUC International", lat: 48.6772619, lng: 6.1934619, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/258405927_4494422867317276_151743934936284411_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=JE3ZRpeQL6MQ7kNvwExzpii&_nc_oc=AdqF2eFSo3KyCdLdxS0VNp3W9XJJIpQH3HOI-eCWSfPhZ-kxWPs5kf3GROmoW4JaRm8&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Ey7PjsQI1lxk_NpER98bqw&_nc_ss=7a3a8&oh=00_Af0rduK4VHT6M3i1ZzL_UTdjBWFetL1eDUxK7mMjSDcm-w&oe=69ED99AE", urlfb:"https://www.facebook.com/groups/137300526890741", histoire: "Groupe destiné aux fans d'écomobilité. Que vous soyez de Province, Île-de-France ou d'un autre pays. Vous êtes tous les bienvenus, Le but est de partager notre passion." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trot'Ride 91", lat: 48.8050058, lng: 2.4922017, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/187288039_10226188207835942_774503468657915126_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=ofNevE5ACIsQ7kNvwFWTNdC&_nc_oc=AdpkxDIsId2V6olaVG-wg0PdzyF6XRuDJSlqfZpN434ZGOybWzfohpcoPcgU1Sxl-3E&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=4FtfTik8yRkJBxC_C0GASA&_nc_ss=7a3a8&oh=00_Af24o8eEQQGt_pED8zenswLAyHEqzeRXQjBmrE-lDTEFuw&oe=6A0F2EDA", urlfb:"https://www.facebook.com/E-Riders-Angers-112032656835724/about/?ref=page_internal", histoire: "Groupe réunissant des passionnés de trottinette électrique. Provenant principalement du département de l'Essonne, ce groupe a pour but d'organiser entre membres, balades, excursions, promenades et autre, dans la joie et la bonne humeurs." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trott Custom France", lat: 43.9493158, lng: 4.805658, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/287739824_155375887051391_4698232134458345841_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=UObKb1ICQhMQ7kNvwFGaEX8&_nc_oc=AdrkeddF2RM41QvZJwFEEKcyzfHpewbmvxjkW7sErn8aYMdg7ZjUUhUNr6k4JV50-A8&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=6VJWbT2UwSVf8HeJHdYSug&_nc_ss=7a3a8&oh=00_Af32_pyWZ3z15gPt2guqBBnanX0lZBYhjR_illptVShgcQ&oe=69ED7E00", urlfb:"https://www.facebook.com/groups/1054640671665795/", histoire: "Passionné de trott et de custom" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "TROTT' IN NÎMES", lat: 43.8388797, lng: 4.3494019, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/424706203_7117813388313596_6667628174267014828_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=ow0C3Ta_tVUQ7kNvwFqEaKi&_nc_oc=Adq2QBQldE2A5nW-VIwTnGEHFJCDXi0XqCcHtXg2rVeUkH7q7frl5T1t_7vZuiLE8bY&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=5XAu6ScDIP3sHFfQWdoBRg&_nc_ss=7a3a8&oh=00_Af3_YfHAkN0WAzFLmaHTvAN0sOfN_ApYCo0iP3x7tLcKcA&oe=69ED763E", urlfb:"https://www.facebook.com/groups/1051922098615027", histoire: "Bonjour, bienvenue à toutes et tous les riders, de Nîmes et alentours ! Organisation de rides sur Nîmes et en occitanie, c'est ici !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trott n'Furîous", lat: 49.0190132, lng: 2.05825, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/365267189_306224772071599_1734027311152301559_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=tAdFqwP0kUAQ7kNvwEwjH1B&_nc_oc=AdoplieRhfNaSD5G4jDGDozMGflZQejwf2Eb007G0L9HYJQAvL4wrSNrIcGJz9xlB7w&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=dSMHcKolHkIgMxsc9Q4bqg&_nc_ss=7a3a8&oh=00_Af32hkKkLg7g39N3F1qSOhreT_UKvzOcikRs_on06rQeEQ&oe=69ED93FF", urlfb:"https://www.facebook.com/groups/657911854840565", histoire: "Notre objectif est de rassembler les passionnées de la trottinette électrique, pour des sorties groupées dans toute la France." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trott Ride 54", lat: 48.6960186, lng: 6.1756919, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t1.6435-9/84582000_10216486881668522_113718248528150528_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=sdaO1Bpg4XcQ7kNvwHHOI65&_nc_oc=AdocfmxwMWZKo347b36oREWxOplfcDMUbLF32TZqese2Fu1m__UJJtjLYkOuKFRSbz0&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=C7EmO6e2woBQPEjURUjTDg&_nc_ss=7a3a8&oh=00_Af2FySroph9pDzmTUeaMcX4VEEe1g0gweIE28QcIajidrw&oe=6A0F269D", urlfb:"https://www.facebook.com/groups/230876234755072", histoire: "Groupe permettant de favoriser les rencontres entre les passionnés et possesseurs de trottinettes électriques, sur le secteur de la Meurthe et Moselle (Nancy), dans le but d'organiser de belles petites balades à l'approche des beaux jours !! " , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trott'08", lat: 49.7734434, lng: 4.7210121, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/110110079_10220198000653853_5435257363722002911_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=25d718&_nc_ohc=A0le6J9_2scQ7kNvwFKLxW-&_nc_oc=Ado-iG884aXWneKRBe2iUwh9XAw3vsokqVzi_J84AeWLbMA1q967wfYIYY4Pt1aEzI4&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=w7DwVZMVQtjaK9c3uB6NxA&_nc_ss=7a3a8&oh=00_Af0uBCB2ZO2wrlLRFDASXAEZjKqWLCbERVwf12GHZ4f8uw&oe=6A0F1613", urlfb:"https://www.facebook.com/groups/2978151948940875", histoire: "Nous sommes de plus en plus nombreux à posséder des trottinettes électriques, gyroroue, skates électriques... Le but de ce groupe est d'organiser des sorties dans les Ardennes pour tous les passionnés mais aussi de développer de l'entraide et des conseils pour entretenir ou modifier nos machines. À très vite pour une balade." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trott2Rue Clermont-Fd", lat: 45.7666289, lng: 3.0973374, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/370921557_6669055439847305_1556121859197136080_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=KitKRDK8vSQQ7kNvwGAr-o5&_nc_oc=AdqrO2iaI4ydl2o3nnAk9dh8H3X9PlgiNNWiky9P71Edzk07eu97yDU-Ayn2guLRAaw&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=LL3KVgLIam1z5RmXYStJIg&_nc_ss=7a3a8&oh=00_Af0VYPRGW3vJ28xpFa01cej76mEcyYzlnAUG3VblOVDXRA&oe=69ED88B9", urlfb:"https://www.facebook.com/groups/318556489874020", histoire: "Bienvenue dans le Groupe 'Trott2Rue Clermont Ferrand', Rider.euse ! Cet espace privé est une extension virtuelle du shop Trott2Rue (FRA - Clermont Ferrand) qui sont spécialisés dans la vente,réparation, customisation d'EDPM (Trottinette ; draisienne ; Speedbikes ; ESkate ...) impression 3D et conception de batterie." , siteinternet: "www.trott2rue.fr" , youtube: ""  , instagram: ""  },
+{ nom: "Trott'in Reims", lat: 49.258828, lng: 4.0316568, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/82859615_3146775148683903_5122955824376840192_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=Tj4gLRokCV0Q7kNvwGCeinC&_nc_oc=Adp3ujW0ZHytEkTr7YcPTIeRjitsq9xH4Wbt168fWzOteHT9EGSIjtcqyyWhb9zSmU0&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=ejFrWJH3-gaD7a3tGcvlFw&_nc_ss=7a3a8&oh=00_Af2V8N4usbwgtiid4XSAkhEDxIF48d-iMOFXRiSw-31v6Q&oe=6A0F2DC9", urlfb:"https://www.facebook.com/groups/2020808424706017", histoire: "Nous sommes de plus en plus nombreux à REIMS et aux alentours, possesseurs de trottinettes électriques. Ce groupe, créé à l’initiative de quelques passionnés, à pour but de rassembler les utilisateurs qui souhaitent partager, se rencarder, découvrir…" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trottinette électrique EDPM France", lat: 45.8366127, lng: 1.2665183, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/316410909_6077726998923401_2964404710548090575_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=Vyply_udz1oQ7kNvwFO1X3x&_nc_oc=Adpmu68ogzbCIx3DvH8zvuD4JCtoVmw--MpE89ZzkXxxCElXoFW5yqeHBxaHs1ejOpU&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=BfB8F9h8usXIMrtCOyEfpg&_nc_ss=7a3a8&oh=00_Af3eP5VuYtYHtvqzt-ouTaJf1wHff9jBJl9Wrcle_rEVLg&oe=69ED8DE6", urlfb:"https://www.facebook.com/groups/257559099512459", histoire: "Groupe dédié au trottinette électrique." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "trottinettes électrique vélo élèc gyroroue", lat: 45.6225658, lng: -1.024092, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/67774715_10219602248425486_3273997043676217344_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=25d718&_nc_ohc=5rrrppNrZsIQ7kNvwHcEJp_&_nc_oc=AdpcDL4DRIbrNxcbtO6evCG2McFiYGPYTTHe02WrWi29Vpb469JRuHzkPur0-o6liJ0&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=8AbcrZClNyoK-m10y7KhTA&_nc_ss=7a3a8&oh=00_Af0_GtJGub6DysSttuHv14qCoKkqvvgdR6PPfZmwm9kXhg&oe=6A0F1AC2", urlfb:"https://www.facebook.com/groups/trott/about", histoire: "Groupe indépendant. Des rencontres, du partage, des bons plans ici on passe du bon temp et on évite les jérémiades et fakenews." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trottinettes électriques - Les Gones de Lyon", lat: 45.7619102, lng: 4.841492, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/485374726_1820817962100747_8234047226109068154_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=nZhbDcSw9rUQ7kNvwG83Xf5&_nc_oc=AdrR_T-XBPeIJFNvUJaIkhiPv8Y0ClkiELsaQXo7x3Vi4XX4r0UZpNqOC1UXBV5Govo&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=IYOMXcgJMOQRiOae8tJyew&_nc_ss=7a3a8&oh=00_Af2NWXEd3POrjQ8-tnPON8AfGBv2QtQm4DfoB96C-xpKGA&oe=69EDA068", urlfb:"https://www.facebook.com/groups/trottinettes69", histoire: "Rencontres électriques Lyonnaises. Toutes marques acceptées sauf freefloating (bonne conduite exigée)." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Trottinettes Electriques Nantes/Pays de la Loire", lat: 47.2298584, lng: -1.5077912, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t1.6435-9/69646698_2584976474874821_6485876984667701248_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=nsC4vm1KevEQ7kNvwH4aydD&_nc_oc=AdorsVArEoPEGm1AYnLh3Bgn0KUgRxrh9fRFd1pPBNTz-WOILGiryClke9-xeTHqB9I&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=3E2OY9tw9U9g8iLb8ASzjQ&_nc_ss=7a3a8&oh=00_Af0sLOgwI0F6aAYohzAspb3w4CwEN5RsZCxAjLOnHZJ7GA&oe=6A0F40A8", urlfb:"https://www.facebook.com/groups/trottinetteselectriques44/", histoire: "Bienvenue dans ce groupe qui a pour but de rassembler les utilisateurs de trottinette électrique et d'EDPM. Que vous soyez passionnés ou utilisateurs occasionnel, ceci est un espace d’échange ou vous pourrez partager des conseils, astuces, actualités , vous pourrez proposer et participer à des balades sur Nantes et sa région." , siteinternet: "" , youtube: "https://www.youtube.com/playlist?list=PLq01P2r2M0uNpkUp9-cAlIJ0fcl3WUI4Z"  , instagram: ""  },
+{ nom: "Trottinettes et autres EDPM/Team France", lat: 43.8344009, lng: 4.3602245, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/433962103_7275990192495914_7177533108473533650_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=oiCQI0EtS-4Q7kNvwEEMLQd&_nc_oc=AdpjPMga6pBuEioIIBlukiwv2Xh-PNJEaFzD2F8NS5pUthSx0Bnk_RwwpZdEJUAa5t8&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=ECxMVmlzudHU6KEOfyOu2g&_nc_ss=7a3a8&oh=00_Af3u16F9br63Vh92WHKXcpeC6Y0TjGCH9h1Ew8Lu-mdokQ&oe=69ED81FB", urlfb:"https://www.facebook.com/groups/434788537509860", histoire: "Bonjour, bienvenue sur le groupe des trottinettes électriques, et autres Glisses Urbaines en France ! Ici, vous pouvez publier des photos, vidéos, demander des conseils, etc... nous sommes de plus en plus, faisons vivre notre communauté ! Bon ride à toutes et tous ! " , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheeler 27/28", lat: 48.7746139, lng: 1.1991019, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/240389369_10159750705117342_6451698373078592090_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=sZXTWx8xUkwQ7kNvwHfLo6E&_nc_oc=AdquZqn1QYHkbsDeBDnnzTTepdG_Nj5wPr4AdidrkdWRHyR_6FB9TgMJ5BjjC7PfIiE&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=AAQRN1QCnflmIK4WodzagQ&_nc_ss=7a3a8&oh=00_Af0YwWwiz2ZdCmYIT8n2FTJiQvj7cENtKkbVIecCqo0k5Q&oe=69ED8BA3", urlfb:"https://www.facebook.com/groups/576912593318815", histoire: "Groupe de wheeler sur les départements du 27 et du 28 ! Proposition de sorties, conseils, entraide et surtout pour le plaisir de partager un loisir, une passion commune !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheeler Bassin d'Arcachon 33", lat: 44.6599283, lng: -1.1788837, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/279612039_366078518898630_5144887104705647373_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_ohc=fNx_m3aGaRcQ7kNvwHs3953&_nc_oc=Adr9UG71CL09um6J7t4H5Tc_xPFshjDLIjfTHhrBkuFk_klBSUI1S5qI9LhCpyem_BI&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=M4XT6J8chDO6wZP0lSY_FQ&_nc_ss=7a3a8&oh=00_Af3Ua01p5fBt9gd0kdTbdgy-RJCBm8uvQsK8H6f3hWynrw&oe=69ED7A43", urlfb:"https://www.facebook.com/wheelersbassindarcachon", histoire: "Cette page a pour but de regrouper les wheelers du bassin D’arcachon et d’organiser des rencontres et des sorties." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheeler de Bretagne", lat: 48.6520994, lng: -2.8377406, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/474515192_1111937620731523_2630912374186561672_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=2a1932&_nc_ohc=8TyQCauTFdMQ7kNvwEK9ALs&_nc_oc=Adp2pKlS2KuFDpZEEUVoQq1dd5lRKUXWXVOlYwEmGgxG63p8d-exki89-kBcWSWW48U&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=kp4-3IOzPND5LCTb7Us55g&_nc_ss=7a3a8&oh=00_Af07hVhZrR-aeUJtDw8zysVbMVMTUdb8xE0JyaUCUzP9tA&oe=69EDA353", urlfb:"https://www.facebook.com/Wheeler-de-Bretagne-171494707023202/?ref=page_internal", histoire: "Équipe de sport amateur." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheeler Marseille", lat: 43.295397, lng: 5.3739637, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/466674228_10229039815394421_2146430515212460877_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=25d718&_nc_ohc=23besH4HVxcQ7kNvwFnz80s&_nc_oc=Adr0T3CYdBRIuEEZ47zaiN4Y-a_HwHuJjS92em3XrttMdKX0kCliWDH7gkAiQlcFZLY&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=3Q8_nrm6perihFhBTtlD8w&_nc_ss=7a3a8&oh=00_Af3sjGcQLuK5quM2yZumNaqtlDxUvy2C2kjTQTYB8jUFNg&oe=69ED8D7B", urlfb:"https://www.facebook.com/groups/1528607147469291/", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheeler Squad / Les Déconfinés Roulants", lat: 48.4532503, lng: 2.0564391, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/338013507_1229265317705005_8745939395925087181_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=wAXj8RKu1mUQ7kNvwGmkHAq&_nc_oc=AdqBEKcGIKzqFpSmUZV8WzyJ1h01cmK-JCxUZ4DpBkQCqytfjfDC3wWEJQYOjQ4fZXY&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=YTWIsbbomTr6LIP2nj2V3w&_nc_ss=7a3a8&oh=00_Af0YFKhcJo-2Q4igqmnZ3EFjjSrYJo50rM0tVmXmMDy2rQ&oe=69EDACEF", urlfb:"https://www.facebook.com/groups/138283303538463/about", histoire: "Le groupe Wheeler Squad est le lieu qui réunit une bonne bande de potes qui kiffent la wheel et surtout la glisse électrique. The Wheeler Squad group is the place to be for gathering a bunch of friends that loves EUC and electric riding. " , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers [FR] Gyroroue / Gyropode / Ecomobilité FR", lat: 45.5968492, lng: 4.3617441, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/151327768_3691642984281784_3153380842317185986_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=GSL1be9zY5oQ7kNvwFfy47O&_nc_oc=AdqgXcFqY8LlKzP766m5V-raEr6DNqAftvjzahGEG8d7sOmncOre2buoTIVu1_Cm-SM&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=jk8OV8DSdbMQBMsgiwKbaw&_nc_ss=7a3a8&oh=00_Af2e3IszkJ3AZ0ZjE81MHsljW5znXl4WdpaHRVwcPhjA2w&oe=6A0F1AE0", urlfb:"https://www.facebook.com/Wheeler-Squad-2160351967332889", histoire: "Le groupe qui rassemble les Wheelers de France et d’ailleurs." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers And Trotters Charentais", lat: 45.9008242, lng: -0.5373901, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/241635261_4256342874494621_1528638219534535866_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=25d718&_nc_ohc=6DLv-UUfahAQ7kNvwF_Qq1s&_nc_oc=AdrbiRju2LGSCD0oz9c8Dtiqq4pDQpwfvz06WuqM-ITFR14gkbU3Qq5nYooqe4IwHY0&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=HDT4xCpFtnlAoE8H5vBTkg&_nc_ss=7a3a8&oh=00_Af3QwqjQNUxfpOC889GpDDEgcxmXmSw5Z8aZynHd0y6llg&oe=69ED8376", urlfb:"https://www.facebook.com/groups/321667445414000", histoire: "Bienvenue à tous, l'été arrive et de plus en plus des personnes s'organise à travers les départements pour des excursions en Wheel,trot ect, voici le groupe pour la Charente-Maritime, afin de se rassembler, se rencontrer et visiter sous une autre forme notre beau département, que vous habiter dans le 17 ou que vous venez en vacances chez nous, rejoignez ce groupe pour s'organiser des superbes balades." , siteinternet: "https://www.net1901.org/association/WHEELERS-AND-TROTTERS-CHARENTAIS,1000024480.html" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers béarnais", lat: 43.345515, lng: -0.0085431, activite: "", images:"https://www.facebook.com/images/groups/groups-default-cover-photo-2x-compressed.png", urlfb:"https://www.facebook.com/groups/422045916011014/about", histoire: "Groupe d'échange pour possesseur de gyroroue." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers Bourguignons - GYROROUE / TROTTINETTE", lat: 46.7809622, lng: 4.853942, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/68798350_890517631320036_667981458794610688_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=d8XY0sGQrjwQ7kNvwEZwuZ4&_nc_oc=AdpjtyB7Wh2Pe37JtwnWBfKIlFPuU_h-y-Q70fwbbgKCpDKA6knrU01MWxHaZoJogno&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=rc0U9BLjG4750BX7WmvKCA&_nc_ss=7a3a8&oh=00_Af0Ef9POfUbiMc5rqz0IbcO7yjJFbZAUMcnzJ24U8QXQ1w&oe=6A0F1A9C", urlfb:"https://www.facebook.com/groups/511914049580079", histoire: "Groupe de discussion des utilisateurs de Gyroroue ou Trottinette de la région BOURGOGNE (mais ouvert a tous). blabla, conseils, aide, contacts, ce groupe est là pour fédérer les utilisateurs réguliers ou occasionnels, permettre les rencontres sympas pour rouler ensemble dans notre région bien adaptée et équipée (voies vertes et bleues, etc) pour nos engins" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers Cergy IDF", lat: 49.0335059, lng: 2.0856575, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/606734153_4385560471724562_8806988227393033402_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=Ypx6Ibsj-1sQ7kNvwHCZ7dr&_nc_oc=AdrXJV8w4HdJL2BJmDAOKN6d-hrF_gnPeZGq48xLgyyGc7C49ZMwpn8G605j_8LitEE&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=rv7QdsEPhCqch2blJ8Y4FQ&_nc_ss=7a3a8&oh=00_Af2bwxKbfR9UWkDHj7ovBzEjX8Xy50EjOTjjg2Gmr1c0kg&oe=69ED9821", urlfb:"https://www.facebook.com/groups/1954165734860091", histoire: "Salut à tous, Bienvenue, J'ai vocation de créer ce groupe pour l'entraide, le dépannage, les discussions autour de la roue et son évolution. Mais aussi d'autres sujets, il n'y a pas de tabou tant que tout est correct et respectueux. C'est aussi l'occasion pour nous d'organiser nos randonnées maison au plus près de chez nous afin de gagner du temps car la vie de famille et le travail nous laissent peu de temps. Les randos c'est l'occasion de faire connaître chacun son jardin à l'autre et vice versa. C'est des moments particulièrement appréciables les plaisirs du roulage." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers Corréziens", lat: 45.1597795, lng: 1.5339218, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/50574811_2040797239340495_7193090263881875456_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=ysCdaBY7SBcQ7kNvwGqH_lb&_nc_oc=Adr1IegdFHBd89qtE_-tU_lL0XAKDdqoq8G72X3ze4MRapz2cVTXgwVDvrS7QN5HUbE&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=MqeNdJAH6NSb1GQuxyNMhQ&_nc_ss=7a3a8&oh=00_Af1w6eYzQovRYX0yw9KcRi5aGDYC2vRw9NpovD01wSrXBg&oe=6A0F3BCB", urlfb:"https://www.facebook.com/groups/Wheelerscorreziens", histoire: "Groupe de Wheelers de la Corrèze ouvert à toutes et tous (Corréziens ou non), pratiquant un NVEI quel qu'il soit, gyroroue, trottinette elec, gyropode.... Groupe de partage et d'échange autour de ces nouveaux moyens de locomotion, dans la joie et la bonne humeur." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Champagne", lat: 49.2582886, lng: 4.0259867, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/66615268_2784871831583278_2159397230149107712_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=ouh8eKhd9-4Q7kNvwG0jsLz&_nc_oc=Ado3NQUXJhQjjI4Z31Q-bhHb0D8VfM3pGvQsx2kDkFxsmFpWQLolgvZv9Q8p944L4e0&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=uq0dZhnhxOyU7sHTx8SjrQ&_nc_ss=7a3a8&oh=00_Af1KScybtbJZJoqy9GLU2eiNJVL7Q4Sfn_iZK9t5uBFJgw&oe=6A0F36DF", urlfb:"https://www.facebook.com/groups/152544735344253/", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de France", lat: 45.6098382, lng: -1.0097101, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/183397518_10225489392360405_228691600669208059_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=RKm1hJemi3UQ7kNvwHLHr_Y&_nc_oc=AdonQfCOsDofyF29-c9DfKBQeE0HFDcQou-RQjTI94TQM_EDqbO0AMHdrtE_nGbTAOQ&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=LJ1xs7P879sptZW4P5VnJg&_nc_ss=7a3a8&oh=00_Af1UDWHjChdw2a3h9eYvNzCn1q1B5bRRh7sEUtl7s62IjA&oe=6A0F25C9", urlfb:"https://www.facebook.com/groups/305971184406094/about", histoire: "Le premier groupe de wheelers de France ! Pour tous les wheelers !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Gironde", lat: 44.8643747, lng: -0.5844562, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/489689252_1366262354393451_5663794014289714235_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=_PIb_kjfQgUQ7kNvwGDlPPW&_nc_oc=AdqBHbYMREbxwNc532dYTldmF88wcOSUyEHbgCpMLVZfrC8QIJ4Ztt5fR_B37iVU-Wo&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Ik3sCnD8_g7jSyKnG5kMWw&_nc_ss=7a3a8&oh=00_Af3kMmGAWiEmDehdTTjqdl3taZCEZPqQv0NvfhzxxiV38Q&oe=69EDA2BB", urlfb:"https://www.facebook.com/groups/651223385336060", histoire: "Ce groupe a pour vocation de réunir tous les utilisateurs de NVEI de Bordeaux, sa Métropole et plus généralement de la Gironde (33). Les sites marchands, groupes marchants ne sont donc pas acceptés dans ce groupe." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Lorraine", lat: 48.699507, lng: 6.1849094, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/475827143_931997459128715_2720466065184910981_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=2a1932&_nc_ohc=lMg6onZ2lzkQ7kNvwFnUvyK&_nc_oc=AdpTtTry19o10X--fIP16syp0YQt35UAU3D0hDuMxrWSa_Qs-8wtALIjrKwjLdA70HE&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=JORqRtCPLU4qIoWNnjd8tQ&_nc_ss=7a3a8&oh=00_Af1oUdO2Bk3Gs4KSVOm8VL1mg5RTMZewRXcFnbGcjvE4qA&oe=69ED9F4E", urlfb:"https://www.facebook.com/LesWheelersDeLorraine", histoire: "Les Wheelers de Lorraine sont une communauté de pratiquants et de passionnés D'EDPM. Le but est de promouvoir et partager ces nouveaux moyens de transports." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Lyon", lat: 45.7573808, lng: 4.8334219, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/266031364_10159031273436953_1997097131292638236_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=25d718&_nc_ohc=Hqtf_KhDTWIQ7kNvwGmLmTB&_nc_oc=AdojwiJSyaw9ifPoctMyhRNcJWapr4nkPdg8BlWeDZWkkR1bXrC9imuP4ibjy6iKBVQ&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=6d8V1vjGf2YPRyVMEvwsdg&_nc_ss=7a3a8&oh=00_Af1Y-Qk8QGhMYWFArlILfdmHzLl_fUeU6hOKi7PAW1KDUw&oe=69ED8936", urlfb:"https://www.facebook.com/groups/wheeloflyon", histoire: "Organisation de randonnées en EDPM (Gyroroue, Trottinettes, Skate, OneWheel, ...) Petites annonces de ventes EDPM & accessoires à Lyon. Lieux d'échange entre lyonnais sur les véhicules urbains à système gyroscopique, trottinettes, skates électriques." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Moselle", lat: 49.119154, lng: 6.172764, activite: "", images:"https://mymaps.usercontent.google.com/hostedimage/m/1/5AL_Y2X5cKa-MtwcDkHk18MlLLqFNloi3Z6slU5yRtOPdw4cfWcTL9n9U_p7ED5ZytW5JKZYk2gXnSURBHLEgjkNLz5tzsQKrFIkJtsy-4-2gfIO3fbxJ0kcsmJpf59okiakNEaeO6pik15AJyf4q8JYH6j325rTf4zXc9QHdGyX2UbcQzNJaiX13ydRhfh5uhNihDSkohcBbJ9MckljlKjPeKxL8fhNy-gcHSrA-Bj0d1kblCr4HVimjL68q5OZo2G0DOcuY-ITQBnJhMPAj?authuser=0&fife=s16383", urlfb:"https://www.facebook.com/Wheelers57", histoire: "Facebook page @Wheelers57 · Communauté - Sports et loisirs · Voyage et transports" , siteinternet: "https://www.wheelers57.fr/" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Normandie", lat: 49.1758401, lng: -0.3758097, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/78748257_10212193557552612_351436386189967360_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=S9HY9F6hOEkQ7kNvwFYvlnu&_nc_oc=AdqfV48se8lNY6bcypuLkqaV2MNZnA9NFTowiZ0DXC9go2oivI_GMQlHGE8ju2pr15w&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=f0VRq5uOzc4fQryVRLigAQ&_nc_ss=7a3a8&oh=00_Af2Kio_EFq8BAPPcDhhrgkQ11T2_Gon3A59abPk-mBkRew&oe=6A0F32B7", urlfb:"https://www.facebook.com/groups/344573329467691", histoire: "Bienvenue à toi Wheeler de Normandie! Pour discuter de notre passion qu’est la roue ou la trottinette électrique et organiser des balades en Normandie." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Paris", lat: 48.8558399, lng: 2.2978274, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/480293430_654772513558657_1955313684854933527_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=2a1932&_nc_ohc=z65bbPGLUXsQ7kNvwEw7VpT&_nc_oc=Adr4bY9qFo_Mf7JoKiMdQzu8yswAkG_HNAiyBI2hufwXRyAqnUxoiA6RT_MBE_eQtz8&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=IkuBvGr7s0Si1I7cM1JV8Q&_nc_ss=7a3a8&oh=00_Af1OBonROqT2RMuzMdNyR_EXTHBm2tsqhEInfZBn1Hc2Mw&oe=69EDA648", urlfb:"https://www.facebook.com/wheelersdeparis/", histoire: "Communauté de Wheelers Parisiens. Rejoignez-nous, plus on est de roues, plus on rit !" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Paris et IDF", lat: 48.8534582, lng: 2.3473635, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/468188159_10232540366078934_5773790277325995609_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=25d718&_nc_ohc=-nARjgD7tLsQ7kNvwFmCLs7&_nc_oc=Adr4IJWGO03iuf7_nQadA7VzJckaul87COyO00StvJ9VHHCn85FIeHlDaOsR_VS8aok&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=PjQyvZPT5CisKhTCVXppIA&_nc_ss=7a3a8&oh=00_Af1X7bqQ4mRBpv_zbbmE1V8P3vnNZ1sv3HnD7lbdJp3Fgw&oe=69ED8FFE", urlfb:"https://www.facebook.com/groups/672187879646659/about", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Poitiers", lat: 46.5801999, lng: 0.3403047, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/467399675_10230488793541681_4040592267153177989_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=kpZJHd7bUBQQ7kNvwH2LB5l&_nc_oc=AdoCZT4CB-aDbDq9B_cRAYc31htP6qj41gM2FL7XJB6pMnapCNQJBBD3e74hcXtI9BE&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=dLgvEPYkZK7YSzdo9jtJ1w&_nc_ss=7a3a8&oh=00_Af1nWCBghkRY9c8zLtR-uiZ6ZD4lEbaVECUpkYqZ30KqKA&oe=69ED7D48", urlfb:"https://www.facebook.com/groups/1827198240928689/", histoire: "Découverte de la Gyroroue. Organisation de randonnées et rencontres avec d'autres wheelers de France. Partage de l'activité dans la bonne humeur. Débutants et tout types de wheels acceptés." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers de Rennes", lat: 48.1165681, lng: -1.6348663, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/310319628_479286117577501_5754245349481596327_n.png?_nc_cat=111&ccb=1-7&_nc_sid=2a1932&_nc_ohc=2YKXES4zOH4Q7kNvwHEVq4n&_nc_oc=Ado-7XlZuxfSbADy0RaWy-vgS1-Tu5SD-rg1YmxZ1AlK79v4csaW2A5BJV8yTMDDYgA&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=mh4ZOaMvlyRSDSo2dnzL_A&_nc_ss=7a3a8&oh=00_Af3fkQp8bAbAmZgD43hcNLIrHTvsGILQEi-_9A4orpxN3g&oe=69EDAA3E", urlfb:"https://www.facebook.com/Wheelers-de-Rennes-1037652922966726", histoire: "Cette page à pour but de rassembler tous les Wheelers de Rennes et sa région." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers des Volcans", lat: 45.7762731, lng: 3.082201, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t1.6435-9/147220246_10221287697195349_3636200399853631234_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=oC2zzk7sqUsQ7kNvwFuAR3o&_nc_oc=Adp7lsfa4BHpBktoR8A0ssh3AuC71JpWd52gPyfIMbh0KW3LmTG_sKag1dlHMzR4XOc&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=Uy36hB4c1mBQMAxqepDM7g&_nc_ss=7a3a8&oh=00_Af0togiLVVc4rc8xLs54o76t_L10trwUYMh9wENdOt26Xw&oe=6A0F2439", urlfb:"https://www.facebook.com/groups/wheelersdesvolcans", histoire: "Groupe créé pour rassembler les wheelers autour de belles balades, dans notre belle région d’Auvergne. Ambiance décontractée, ride zen ou sportives." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers du 66 et 11", lat: 42.7873998, lng: 3.0381788, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/87964574_1971877952955632_5101123358855004160_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=mNu0xX_8GOEQ7kNvwGM9Kah&_nc_oc=Adra6i3sdnwGEYrh9_6t98Z943PluT_FTrcRY__W8dHmhkeIKsW-GFE2XeST-gSe4ac&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=oPuY1DZpNKBF20dMIICp_Q&_nc_ss=7a3a8&oh=00_Af23xxTpdtnUzOl4sUyKRDy6V01tYtVpxWVmPhnsM1T_oQ&oe=6A0F290E", urlfb:"https://www.facebook.com/groups/1933548030224522", histoire: "Association créée dans le but de promouvoir la glisse électrique via la création et la participation à des événements, des démonstration et initiations." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers du Nord", lat: 50.6329171, lng: 3.0465154, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/476831772_1147551684037516_4518823719449963727_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=2a1932&_nc_ohc=W8Pl_Aung7YQ7kNvwHNKP3i&_nc_oc=AdqGIDYNp2bvNQPngD1GOJidaEgEe4-InL2bcksec3jTpHw8jW_m6Qf7n9DChfC7Ogg&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=CIjelg7kN6yls5qI_VDCew&_nc_ss=7a3a8&oh=00_Af2YSt3A64Os_Nrq6tPXqR_XjubZlMMxqfjOdr9f0pkQTQ&oe=69ED9F33", urlfb:"https://www.facebook.com/WheelersduNord", histoire: "Association loi 1901 crée le 17/05/2018 R.N.A. W595 031 075. Objet : promouvoir l'écomobilité à travers l'usage des véhicules individuels électriques que sont les monoroues électriques (gyroroues) , les trottinettes, gyropodes et véhicules similaires ;   oeuvrer à la sécurité de ce moyen de transport par toute action de formation et de pratique encadrée ; organiser et de participer à toutes manifestations, balades, randonnées, voyages en rapport avec l'écomobilité ;   etre un interlocuteur qualifié pour représenter ses membres et d'une façon plus générales les utilisateurs de ces moyens de transport vis à vis des pouvoirs publics ; exercer toutes les activités et accomplir toutes les opérations tendant à réaliser cet objet, en france, dans l'union européenne et à l'étranger" , siteinternet: "https://sites.google.com/view/wheelersdunord" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers et Riders du Bocage Vendéen", lat: 46.8692909, lng: -1.0132854, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/268986797_3078953249054318_4473567541792237671_n.png?stp=dst-jpg_tt6&_nc_cat=109&ccb=1-7&_nc_sid=25d718&_nc_ohc=gHNQ9GrKBiYQ7kNvwFmc6gT&_nc_oc=AdrO85fFYrBvgSR3t-pEosxZaYvo1rzibQCB70wBjV4zkE9OF7EjCb3M2mAo5Q0BsA8&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=ROlYPICdzUZYhT7_eui_3g&_nc_ss=7a3a8&oh=00_Af1O_TR6KV3bASffq34rajy3hhou7hQ-CpcHYNM09u922w&oe=69EDA81A", urlfb:"https://www.facebook.com/groups/1056919538203298", histoire: "regroupement de Wheeler et Riders de tout EDPM confondu" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers Gyroroue du 13", lat: 43.2846039, lng: 5.3715184, activite: "", images:"https://www.facebook.com/images/groups/groups-default-cover-photo-2x-compressed.png", urlfb:"https://www.facebook.com/groups/1395553497522863", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers Montpellier", lat: 43.5956265, lng: 3.8596821, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/468397206_10235604958332609_1885951345878503392_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=e8IztATrYUEQ7kNvwHMCvoI&_nc_oc=AdpsR38ylVKFuh_EAS2m8bq9aqT-R6tCo7GlLbhFse_oqQu_jpG1wT88cbZzu7RyNKQ&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=RxdM9OvOM2GbDjMGln7dyQ&_nc_ss=7a3a8&oh=00_Af2ty_qdSSKA14DCVLQv1Yu9y2rz2spw8ModJ3ywrf7QZQ&oe=69EDAFB8", urlfb:"https://www.facebook.com/groups/610239472508688", histoire: "Groupe de personnes passionnés, contre l'exclusivité des marques de wheel réservé aux magasins avec des S.A.V bas de gamme. Nous sommes en train de créer un contre avec des prix attractif et des S.A.V de HAUT DE GAMME." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "WHEELERS PRO", lat: 48.8656398, lng: 2.3212295, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t1.6435-9/67874180_10157433182019806_5433552298557046784_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=25d718&_nc_ohc=jF2N9j-QFy4Q7kNvwHTjfs8&_nc_oc=AdrWddWUQ1tl-yQ_T7mnqTUVJK6skMtM4CGj2FsOB3Mn6iKeVffPRw1Zr3Vjye42cZU&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=O4iUCzjmXMiXXVaVGunatQ&_nc_ss=7a3a8&oh=00_Af1MkCiqVXQRonFkEWdJp5t7unDMsjeLoX2f2dfppTP_Cg&oe=6A0F398B", urlfb:"https://www.facebook.com/groups/WHEELERSPRO", histoire: "Le groupe est dédié à la communauté mondiale des Wheelers Pro. Tu ne sais pas ce qu'est un Wheeler Pro ? Deviens membre de ce groupe unique et découvrez-le ! Sérieux et sans humour, passez votre chemin... Et n'oubliez jamais : 'Un grand pouvoir implique de grandes responsabilités' - BENJAMIN PARKER, SPIDER-MAN" , siteinternet: "https://www.facebook.com/WHEELERSPRO/" , youtube: "https://www.youtube.com/c/wheelerspro/?sub_confirmation=1"  , instagram: ""  },
+{ nom: "Wheelers Sud 77", lat: 48.5035098, lng: 2.5620242, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/135856944_10158957161299116_2727097893315759370_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=25d718&_nc_ohc=TfeQRoXKlpIQ7kNvwGPTkup&_nc_oc=AdpvGGACtv8KXLJZiY37Fn35dcqx-fmW8oEIWhTteCmyEqzKl31wutKA0BCzJs2VWvA&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=dpaDSLvnAPDb9pzUuYeitA&_nc_ss=7a3a8&oh=00_Af2eAR9zMjzJLR8IaXZfLMyexYWYE4wR76j0JqT8McdYWA&oe=6A0F5222", urlfb:"https://www.facebook.com/groups/243023623887485", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers31", lat: 43.5958295, lng: 1.4524296, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/460411219_2377909995900808_7461287922763504240_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=25d718&_nc_ohc=WoWVZlSS8VkQ7kNvwHy7_JR&_nc_oc=Adoyc4UlcTC7z6imFNgTlfFpno4LYvmpk9JLSb_GitG5xcDCxIjaodR1UgLypqzuZis&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=dd29zuc8RZGzpQT3Y_uSqw&_nc_ss=7a3a8&oh=00_Af1fYRmY-DrKzOunPr9cxdGmqUGnxjQ_O_tIU76VCyYabA&oe=69ED9500", urlfb:"https://www.facebook.com/groups/297513850700335/", histoire: "Wheeler et électrotteurs de Haute Garonne et environ. Le groupe a pour but de créer des rencontres et des échanges entre personnes passionnées." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Wheelers-Mc", lat: 48.8565319, lng: 2.3511624, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/510069456_722901433665446_8998561509926535740_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=25d718&_nc_ohc=D8yGihvNMcIQ7kNvwHFt2Xi&_nc_oc=AdrjbYul9Vqm0j_j4DgsmaXEjlh39flVZttRoB_upa3NurgCMU-B5NAqDjTfu4zYwMs&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=rSLEyWHJHCvQA2dx0qFbnw&_nc_ss=7a3a8&oh=00_Af0nH3xhGO3WjGjpsy6VTEmTR_VHHbPXm72f9uiev8ip1w&oe=69EDA7A3", urlfb:"https://www.facebook.com/groups/486556439585123/", histoire: "Groupe destiné aux passionnés de E-wheels. Gyroroue. " , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "WMC", lat: 48.8668619, lng: 2.2960105, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/491452067_980838767553321_3264163056563946307_n.png?stp=dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=dfDSrULT4WAQ7kNvwEnI7e1&_nc_oc=AdrEEle-m-Z_ZaFKhS8D7efT3GiSRcdbJ25ikK3SlBvwlRx0TgNv7lVOk7XwFfvHuU0&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=Axbzrk1XPqBQ8d6WPgdQJg&_nc_ss=7a3a8&oh=00_Af3mixI222j3lz_E6kS4cMauE65bqsW4MF5uEpHeVC1z1A&oe=69EDA3E0", urlfb:"https://www.facebook.com/groups/2082349812142788/about", histoire: "Association loi 1901 crée le 09/10/2024 R.N.A : W751 276 215. Objet : promouvoir et développer la pratique et l'utilisation des engins de déplacement personnel motorisés, en particulier des monocycles électriques, gyroroues, ainsi que la formation et l'information sur leur usage ; organiser des ateliers et stages pour initier et perfectionner les pratiquants de tous niveaux" , siteinternet: "https://wmc.paris/" , youtube: "https://www.youtube.com/@wmc.officiel"  , instagram: ""  },
+{ nom: "Ze wheelers +pqp", lat: 48.9237373, lng: 2.1221351, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t1.6435-9/169017411_986348378774643_577555747762149945_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=25d718&_nc_ohc=orZmNqAsPZsQ7kNvwHCL5lH&_nc_oc=Adp-U8ZHE-7VKFut4ct4KzrIF5eLFDIoiQ-qGiSkWfbcXbmRxlAGqJbdFC4Zu2oBV_8&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=TodESfus6UBXKZzAirejDQ&_nc_ss=7a3a8&oh=00_Af1ZHqre1bm0kQXNqjJUz21XqM-lwe1zZsRZ-4ymT8wqNg&oe=6A0F21AF", urlfb:"https://www.facebook.com/groups/283018829666547/about", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "BELGIUM WHEELERS ASBL", lat: 50.8672598, lng: 4.3449459, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/473230200_1133853832073239_6480895954061907861_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=1d70fc&_nc_ohc=nFPY-mdrhbMQ7kNvwFursuI&_nc_oc=AdpD33aocBOB9jq_S99xoIn-zyLFWQ2iso4U8OhV5ClSRIjguM5eJaKsmtY5m8lvNeo&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=vw7XqUWKvd6mx_stmBaBUQ&_nc_ss=7a3a8&oh=00_Af2V5dZbb3_ppb9fx0WTXyDyQmdKaYCWZc6qq6HMG-iklw&oe=69ED54AE", urlfb:"https://www.facebook.com/belgium.wheelers", histoire: "" , siteinternet: "http://www.belgiumwheelers.club/" , youtube: ""  , instagram: ""  },
+{ nom: "Ça roule (Belgique)", lat: 50.6057324, lng: 4.1382431, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t1.6435-9/38412089_262602147679567_8438918186048421888_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=KlkSDURT39gQ7kNvwFmxuRW&_nc_oc=AdrXyCTqBgZ3gpvgUFnnqFvsoOywWxVg6LeQ9pQwi2cMFaKkbhBuW_kjmORay5WiDN8&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=vB2eMtOLLnFbqzuOY0kFTA&_nc_ss=7a3a8&oh=00_Af1Db9jRkoLnzeaH557UjaT6d_40tKXdfUgXhJxbnwTRxw&oe=6A0ED9D0", urlfb:"https://www.facebook.com/groups/340449189811325/about", histoire: "Balades et informations sur les nouveaux moyens de locomotion électrique, l' e-mobilité. Gyropode, gyroroue, hoverboard, hoverkart, trotinettes électrique, skateboard électrique, rollers électrique, driftkart, vélos électriques,…" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "EUC & PIZZA (Italie)", lat: 41.8893956, lng: 12.4911389, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/347433169_1201255393899455_3270050262109975180_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=25d718&_nc_ohc=Zxd2-1tKbYoQ7kNvwGuy3wH&_nc_oc=AdpV2fQa1oE63FtWa3yik2-V0OrwDju4hCCgbOYYaLrmO2gR1UO1UEnQzMHHIY1teUM&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=Xkzmw6-snxvuk-mDAcnTTA&_nc_ss=7a3a8&oh=00_Af05QDA8-UKiomEsCQznxBqRiLTdDvx9bpUGC4wJkA2ztQ&oe=69EDA616", urlfb:"https://www.facebook.com/groups/2824530337825998/members", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "EUC Offroad Limburg NL/BE", lat: 51.5877988, lng: 5.8116142, activite: "", images:"https://scontent-cdg4-1.xx.fbcdn.net/v/t39.30808-6/656852501_122242592228144548_5696110519175546615_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=25d718&_nc_ohc=4__zAWnzPRUQ7kNvwHLMCNn&_nc_oc=Adp0CqnGPmlcthMA0L3NorIkeXDaTe00mKrxfpNTvrnwiZkLxoWDnRHG7zQucC9JRsY&_nc_zt=23&_nc_ht=scontent-cdg4-1.xx&_nc_gid=kGcmm9utweXdKSWnFQMrYw&_nc_ss=7a3a8&oh=00_Af3t7v-aTNXsb3NS5OxyR9hmuxhpaooQQRuT3yR5LGXk_g&oe=69EDB52F", urlfb:"https://www.facebook.com/groups/euclimburg/about", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "EUC-PEV BELGIUM", lat: 51.0267933, lng: 4.1066859, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/578063040_2028290617932407_9158024479876368890_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=srYpN_aJEywQ7kNvwEL1WeQ&_nc_oc=AdqhsoGUlYnZh1x3SXSiMgpeS3BP4AOjdLGZly0gO_Nj8AfkE1tFhnGrxg29xBD7UuU&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=0u6Vwm7LBnL-97EAIoIQog&_nc_ss=7a3a8&oh=00_Af3pQxTLzWHcKuuD1FGUClxAkrsymCEucvnLmWW8DGXkiw&oe=69EDBB9C", urlfb:"https://www.facebook.com/groups/belgium.euc.group.riders/about", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "E-Wheelers Luxembourg", lat: 49.6111253, lng: 6.1289045, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/505178864_2232515577168924_601131932526582294_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=25d718&_nc_ohc=xhFQSiJ5zwEQ7kNvwGUrC5_&_nc_oc=AdpD32r6SxDRvb7fRbY9fyX7S6XiXmJXLsR6e2fPFn3G73dsgO38fcpV9rBTiFn3joU&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=1vykN02AwT4ZOuXQ3HzyfA&_nc_ss=7a3a8&oh=00_Af13MAYb3PJ5jWJQJwq230rgSItMwlYW4NgKbEuQb5XFrw&oe=69EDBD20", urlfb:"https://www.facebook.com/groups/1426919724481310/", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "German Wheelers", lat: 52.5167971, lng: 13.4064988, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/306519560_1036348463705892_9174326864761910479_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=100&ccb=1-7&_nc_sid=25d718&_nc_ohc=yC5TdczOlIAQ7kNvwGlgWUb&_nc_oc=AdqHUqZQsRoROUhWEtGnIgsyv-_XpAjiD2G_W2ATOwQDkIWaQ9d2qV1SNr1Bbz0J9xg&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=NNQzloED6eCy73CQH3jOiQ&_nc_ss=7a3a8&oh=00_Af0TDRnxGI9iEm6AofBPK8Y8S-KcMXGLgU-0QKu-lhUaGQ&oe=69ED9358", urlfb:"https://www.facebook.com/groups/1065149160864836", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les Wheelers et EDPM Namurois", lat: 50.465054, lng: 4.8651793, activite: "", images:"https://scontent-cdg4-3.xx.fbcdn.net/v/t39.30808-6/339253472_765693095069386_1012514353562379951_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=25d718&_nc_ohc=Y-or_aX9ntcQ7kNvwHWe749&_nc_oc=Adq2Hl_5vKtC88drs9XU-U8P-fsMb0LHH_EXudTyQw_jiDmga4lUeQv2h5INgpCOBwY&_nc_zt=23&_nc_ht=scontent-cdg4-3.xx&_nc_gid=amkcid8Fv81nskCK75hibA&_nc_ss=7a3a8&oh=00_Af3x1lZtNwR_7dwcEXg9URsR0LvAw0tKDDkxLDCYPHOHbA&oe=69EDA48C", urlfb:"https://www.facebook.com/groups/255444816929168/", histoire: "Bonjour, Le groupe 'Les Wheelers et EDPM Namurois' est un groupe pour rassembler la communauté Micro-Mobilité de Namur. Ce groupe servira principalement à : Organiser des balades en EDPM, Répondre aux questions quand à l'achat de nouveaux véhicules, Aide quant à la réparations de nos engins préférés, Un esprit de communauté pour s'entraider." , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "No Limits to Ride (Allemagne)", lat: 50.733546, lng: 7.1000767, activite: "", images:"https://scontent-cdg6-1.xx.fbcdn.net/v/t39.30808-6/361646120_6558642027511960_3249155225112331207_n.png?stp=dst-jpg_tt6&_nc_cat=106&ccb=1-7&_nc_sid=25d718&_nc_ohc=0vTmz3sNugYQ7kNvwG57hC4&_nc_oc=AdqaP2jp421pldRscqGlIjcAYLqoHhR6U_vY7lrBeBtVZTIZB3ZuLGCkXNPb9wnELgc&_nc_zt=23&_nc_ht=scontent-cdg6-1.xx&_nc_gid=YzWA5JsuHGhOJtKCmW0y9A&_nc_ss=7a3a8&oh=00_Af1ydi5pIklBP3GpYob6OlY-jKY9SuSxoNKBtByYtWh9Xg&oe=69EDA142", urlfb:"https://www.facebook.com/groups/260342427981642", histoire: "" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "GiraCat Espagne", lat: 36.3130324, lng: -5.3041545, activite: "", images:"https://scontent-cdg4-2.xx.fbcdn.net/v/t39.30808-6/482082263_1165722728592145_2360916094871300489_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=2a1932&_nc_ohc=-8SdfmZUyU0Q7kNvwHURHJr&_nc_oc=AdryZLRUFHEeKkcdIQw4Qd7eiU55dSOPl3hKNwVgXw0o03HGe0JceIcRWPFDFZhw2Xs&_nc_zt=23&_nc_ht=scontent-cdg4-2.xx&_nc_gid=KqDVmQAo7XfFo4aLwvBLDA&_nc_ss=7a3a8&oh=00_Af2-vjM9YRx4brqlotjMkMVtjyitda0KzP_otTkDRhkRnw&oe=69ED9AE1", urlfb:"https://www.facebook.com/Giracat/", histoire: "polowheel" , siteinternet: "https://www.giracat.net/en/home/" , youtube: ""  , instagram: ""  },
+{ nom: "Roda Polo Argentina", lat: -37.4576581, lng: -61.9058243, activite: "", images:"", urlfb:"", histoire: "polowheel" , siteinternet: "" , youtube: ""  , instagram: "https://www.instagram.com/stories/highlights/18153432484288321/"  },
+{ nom: "Roda Polo UK", lat: 51.4063361, lng: -0.6220064, activite: "", images:"", urlfb:"", histoire: "polowheel" , siteinternet: "" , youtube: ""  , instagram: "https://www.instagram.com/rodapolo.uk/"  },
+{ nom: "Roda Polo Uruguay", lat: -34.554324, lng: -55.3657088, activite: "", images:"", urlfb:"", histoire: "polowheel" , siteinternet: "" , youtube: ""  , instagram: "https://www.instagram.com/p/CguYjLRuWqQ/"  },
+{ nom: "Fabien & Co", lat: 47.2049152, lng: -1.5413057, activite: "", images:"", urlfb:"", histoire: "Polowheel" , siteinternet: "" , youtube: ""  , instagram: ""  },
+{ nom: "Les aventuriers de la Wheel", lat: 48.8363172, lng: 2.3247952, activite: "", images:"", urlfb:"", histoire: "Association loi 1901 crée le 26/04/2021 R.N.A : W751 260 727" , siteinternet: "" , youtube: ""  , instagram: ""  },
+
+];
+
+/* =========================
+   Catégorie détectée depuis histoire
+   ========================= */
+function getCategorie(e) {
+  const h = (e.histoire || "").toLowerCase();
+  const a = (e.activite  || "").toLowerCase();
+  if (h.includes("association") || a.includes("asso")) return "asso";
+  return "groupe";
+}
+
+function isAsso(e) {
+  const h = (e.histoire || "").toLowerCase();
+  const a = (e.activite  || "").toLowerCase();
+  return h.includes("association") || a.includes("asso");
+}
+
+function isPolo(e) {
+  const h = (e.histoire || "").toLowerCase();
+  const a = (e.activite  || "").toLowerCase();
+  return h.includes("polowheel") || h.includes("polo wheel") || a.includes("polo");
+}
+
+const CAT_STYLE = {
+  "groupe": { couleur: "#1565C0", label: "Groupe réseaux sociaux" },
+  "asso":   { couleur: "#E65100", label: "Association" },
+};
+
+function getCouleur(e) {
+  return CAT_STYLE[getCategorie(e)].couleur;
+}
+
+function getLabel(e) {
+  return CAT_STYLE[getCategorie(e)].label;
+}
+
+/* =========================
+   Région depuis coordonnées GPS
+   ========================= */
+const REGIONS = [
+  { nom: "DOM-TOM",                    test: (lat, lng) => lat < 0 || lat > 55 || lng < -10 || lng > 12 },
+  { nom: "Europe",                     test: (lat, lng) => (lng < 2.5 && lat > 49.5) || lng > 8.2 || (lat > 50 && lng > 2) },
+  { nom: "Hauts-de-France",            test: (lat, lng) => lat >= 49.5 && lat <= 51.1 && lng >= 1.5 && lng <= 4.3 },
+  { nom: "Île-de-France",              test: (lat, lng) => lat >= 48.1 && lat <= 49.2 && lng >= 1.4 && lng <= 3.6 },
+  { nom: "Normandie",                  test: (lat, lng) => lat >= 48.4 && lat <= 50.0 && lng >= -2.1 && lng <= 2.0 },
+  { nom: "Grand Est",                  test: (lat, lng) => lat >= 47.4 && lat <= 50.0 && lng >= 4.8 && lng <= 8.3 },
+  { nom: "Bretagne",                   test: (lat, lng) => lat >= 47.3 && lat <= 48.9 && lng >= -5.2 && lng <= -1.0 },
+  { nom: "Pays de la Loire",           test: (lat, lng) => lat >= 46.8 && lat <= 48.5 && lng >= -2.6 && lng <= 0.2 },
+  { nom: "Centre-Val de Loire",        test: (lat, lng) => lat >= 46.3 && lat <= 48.6 && lng >= 0.2 && lng <= 3.1 },
+  { nom: "Bourgogne-Franche-Comté",    test: (lat, lng) => lat >= 46.1 && lat <= 48.5 && lng >= 2.8 && lng <= 7.0 },
+  { nom: "Nouvelle-Aquitaine",         test: (lat, lng) => lat >= 43.0 && lat <= 47.5 && lng >= -1.9 && lng <= 2.5 },
+  { nom: "Occitanie",                  test: (lat, lng) => lat >= 42.3 && lat <= 45.0 && lng >= 0.1 && lng <= 4.9 },
+  { nom: "Auvergne-Rhône-Alpes",       test: (lat, lng) => lat >= 44.1 && lat <= 47.0 && lng >= 2.1 && lng <= 7.2 },
+  { nom: "Provence-Alpes-Côte d'Azur", test: (lat, lng) => lat >= 43.0 && lat <= 44.9 && lng >= 4.2 && lng <= 7.8 },
+  { nom: "Corse",                      test: (lat, lng) => lat >= 41.3 && lat <= 43.1 && lng >= 8.5 && lng <= 9.6 },
+];
+
+function getRegion(lat, lng) {
+  // Tout ce qui est hors France métropolitaine → "Europe" (clé du filtre "Monde")
+  if (lat < 41 || lat > 51.5 || lng < -5.5 || lng > 9.7) return "Europe";
+  // Europe proche hors France
+  if (lng > 8.3 || (lat > 50.5 && lng > 3.5) || (lat > 49.7 && lng < 1.4)) return "Europe";
+  for (const r of REGIONS.slice(2)) {
+    if (r.test(lat, lng)) return r.nom;
+  }
+  return "";
+}
+
+/* =========================
+   Icône colorée (cercle SVG)
+   ========================= */
+function createIcon(couleur) {
+  return L.divIcon({
+    className: "",
+    html: `<svg width="24" height="32" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 0 C12 0 0 12 0 20 a12 12 0 0 0 24 0 C24 12 12 0 12 0 Z"
+            fill="${couleur}" stroke="white" stroke-width="2"/>
+    </svg>`,
+    iconSize: [24, 32],
+    iconAnchor: [12, 32],
+    popupAnchor: [0, -34]
+  });
+}
+
+/* =========================
+   Carte
+   ========================= */
+const map = L.map("map").setView([46.8, 2.5], 6);
+
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: "abcd",
+  maxZoom: 20
+}).addTo(map);
+
+const markersLayer = L.markerClusterGroup({
+  maxClusterRadius: 40,
+  spiderfyOnMaxZoom: true,
+  showCoverageOnHover: false,
+  disableClusteringAtZoom: 14
+});
+map.addLayer(markersLayer);
+
+const markersIndex = Object.create(null);
+
+/* =========================
+   Construction des markers
+   ========================= */
+function buildPopupHtml(e) {
+  let html = `<strong>${e.nom}</strong>`;
+  const cat = getCategorie(e);
+  if (cat !== "groupe") {
+    html += `<br><span style="font-size:11px;color:#666;">${getLabel(e)}</span>`;
+  }
+  if (e.images && e.images.trim()) {
+    const imgSafe = e.images.trim().replace(/'/g, "\\'");
+    html += `<br><img src="${e.images.trim()}" alt="${e.nom}" style="width:100%;border-radius:6px;margin-top:6px;cursor:zoom-in;" onclick="openImageOverlay('${imgSafe}','${e.nom.replace(/'/g,"\\'")}')">`;
+  }
+  return html;
+}
+
+function buildMarker(e) {
+  const couleur = getCouleur(e);
+  const marker = L.marker([e.lat, e.lng], { icon: createIcon(couleur) });
+  marker
+    .bindPopup(buildPopupHtml(e), { maxWidth: 300 })
+    .bindTooltip(e.nom, { direction: "top", offset: [0, -12], opacity: 0.9 })
+    .on("click", () => afficherInfos(e));
+  markersIndex[normalize(e.nom)] = marker;
+  return marker;
+}
+
+/* =========================
+   Construction initiale de TOUS les markers
+   ========================= */
+const allMarkers = [];
+for (const e of etablissements) {
+  if (e.lat === null || e.lng === null || isNaN(e.lat) || isNaN(e.lng)) continue;
+  const marker = buildMarker(e);
+  allMarkers.push({ e, marker });
+}
+
+/* =========================
+   Mise à jour carte
+   ========================= */
+function updateMap() {
+  markersLayer.clearLayers();
+  const filtreRegion = document.getElementById("regionFilter").value;
+
+  let count = 0;
+  for (const { e, marker } of allMarkers) {
+    // Filtre tags actifs
+    if (activeTags.size > 0) {
+      const matchGroupe = activeTags.has("groupe") && getCategorie(e) === "groupe";
+      const matchAsso = activeTags.has("asso") && isAsso(e);
+      const matchPolo = activeTags.has("polo") && isPolo(e);
+      if (!matchGroupe && !matchAsso && !matchPolo) continue;
+    }
+
+    // Filtre région (depuis coordonnées)
+    if (filtreRegion !== "") {
+      const reg = getRegion(e.lat, e.lng);
+      if (reg !== filtreRegion) continue;
+    }
+
+    markersLayer.addLayer(marker);
+    count++;
+  }
+
+  document.getElementById("compteur").textContent = `${count} groupe${count > 1 ? "s" : ""} affiché${count > 1 ? "s" : ""}`;
+}
+
+/* =========================
+   Panneau d'info
+   ========================= */
+function afficherInfos(e) {
+  document.getElementById("sidepanel").classList.add("open");
+  document.getElementById("sidepanel-title").textContent = e.nom;
+  document.getElementById("sidepanel-empty").style.display = "none";
+
+  let html = "";
+
+  // 1. Badge catégorie en premier
+  const cat = getCategorie(e);
+  const couleur = getCouleur(e);
+  html += `<div style="margin-bottom:8px;">
+    <span class="badge-activite" style="background:${couleur}20;color:${couleur};border:1px solid ${couleur}80;">${getLabel(e)}</span>
+    ${isPolo(e) ? `<span class="badge-activite" style="background:#6A1B9A20;color:#6A1B9A;border:1px solid #6A1B9A80;">🏑 Polo Wheel</span>` : ""}
+  </div>`;
+
+  // 2. Image pleine largeur sous le badge
+  if (e.images && e.images.trim()) {
+    const imgSrc = e.images.trim();
+    const imgAlt = e.nom.replace(/'/g, "\\'");
+    html += `<img src="${imgSrc}" alt="${e.nom}" class="panel-image"
+      onclick="openImageOverlay('${imgSrc}','${imgAlt}')"
+      onerror="this.style.display='none'">`;
+  }
+
+  // 3. Description / histoire (RNA intégré dedans)
+  if (e.histoire && e.histoire.trim()) {
+    html += `<div class="info-bloc">
+      <div class="info-bloc-titre">📋 À propos</div>
+      <div style="color:#333;line-height:1.6;">${e.histoire.trim().replace(/\n/g,"<br>")}</div>
+    </div>`;
+  }
+
+  // 4. Liens simples soulignés
+  let htmlLiens = "";
+  if (e.urlfb && e.urlfb.trim()) {
+    htmlLiens += `<a href="${e.urlfb.trim()}" target="_blank" class="lien-simple">📘 Page Facebook</a>`;
+  }
+  if (e.siteinternet && e.siteinternet.trim()) {
+    let url = e.siteinternet.trim();
+    if (!url.startsWith("http")) url = "https://" + url;
+    htmlLiens += `<a href="${url}" target="_blank" class="lien-simple">🌐 Site internet</a>`;
+  }
+  if (e.youtube && e.youtube.trim()) {
+    htmlLiens += `<a href="${e.youtube.trim()}" target="_blank" class="lien-simple">▶️ Chaîne YouTube</a>`;
+  }
+  if (e.instagram && e.instagram.trim()) {
+    let url = e.instagram.trim();
+    if (!url.startsWith("http")) url = "https://" + url;
+    htmlLiens += `<a href="${url}" target="_blank" class="lien-simple">📸 Instagram</a>`;
+  }
+
+  if (htmlLiens) {
+    html += `<div class="info-bloc"><div class="info-bloc-titre">🔗 Liens</div>${htmlLiens}</div>`;
+  }
+
+  if (!html) {
+    html = `<div style="color:#aaa;font-size:13px;text-align:center;padding:20px 0;">Aucune information disponible.</div>`;
+  }
+
+  html += `<div style="margin-top:14px; padding-top:12px; border-top:1px solid #e0e0e0; text-align:center;">
+    <a href="https://discord.com/channels/941268536351916062/1330844960920047637" target="_blank"
+       style="color:#5865F2; font-size:13px; font-weight:bold; text-decoration:none;">
+      💬 Viens en discuter avec d'autres
+    </a>
+  </div>`;
+
+  document.getElementById("panel-infos").innerHTML = html;
+  document.getElementById("panel-infos").style.display = "block";
+}
+
+/* =========================
+   Recherche
+   ========================= */
+const searchInput = document.getElementById("searchInput");
+const searchResults = document.getElementById("searchResults");
+
+searchInput.addEventListener("input", () => {
+  const q = normalize(searchInput.value);
+  searchResults.innerHTML = "";
+
+  if (q.length < 2) { searchResults.style.display = "none"; return; }
+
+  const matches = etablissements
+    .filter(e => normalize(e.nom).includes(q))
+    .slice(0, 12);
+
+  if (!matches.length) { searchResults.style.display = "none"; return; }
+
+  matches.forEach(e => {
+    const div = document.createElement("div");
+    div.className = "search-result";
+    div.textContent = e.nom;
+    div.addEventListener("click", () => {
+      searchResults.style.display = "none";
+      searchInput.value = e.nom;
+
+      if (e.lat === null || e.lng === null) {
+        // Pas de coords : juste afficher les infos
+        afficherInfos(e);
+        return;
+      }
+
+      const afficherEtiquette = () => {
+        const etiquette = L.tooltip({
+          permanent: true, direction: "top", offset: [0, -14],
+          className: "etiquette-recherche"
+        }).setContent(e.nom).setLatLng([e.lat, e.lng]).addTo(map);
+        setTimeout(() => map.removeLayer(etiquette), 3000);
+        const m = markersIndex[normalize(e.nom)];
+        if (m) m.openPopup();
+      };
+
+      if (map.getZoom() >= 14) {
+        map.setView([e.lat, e.lng], 16);
+        setTimeout(afficherEtiquette, 400);
+      } else {
+        map.once("zoomend", () => setTimeout(afficherEtiquette, 300));
+        map.setView([e.lat, e.lng], 16);
+      }
+      afficherInfos(e);
+    });
+    searchResults.appendChild(div);
+  });
+
+  const rect = searchInput.getBoundingClientRect();
+  searchResults.style.left = rect.left + "px";
+  searchResults.style.top = (rect.bottom + window.scrollY) + "px";
+  searchResults.style.width = rect.width + "px";
+  searchResults.style.display = "block";
+});
+
+document.addEventListener("click", e => {
+  if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+    searchResults.style.display = "none";
+  }
+});
+
+/* =========================
+   Filtres tags
+   ========================= */
+const activeTags = new Set();
+
+function toggleTag(tag) {
+  if (activeTags.has(tag)) {
+    activeTags.delete(tag);
+  } else {
+    activeTags.add(tag);
+  }
+  document.getElementById("tagGroupe").classList.toggle("tag-actif-groupe", activeTags.has("groupe"));
+  document.getElementById("tagAsso").classList.toggle("tag-actif-asso", activeTags.has("asso"));
+  document.getElementById("tagPolo").classList.toggle("tag-actif-polo", activeTags.has("polo"));
+  updateMap();
+}
+
+/* =========================
+   Filtre région
+   ========================= */
+document.getElementById("regionFilter").addEventListener("change", updateMap);
+
+/* =========================
+   Tout afficher
+   ========================= */
+function toutAfficher() {
+  activeTags.clear();
+  document.getElementById("tagGroupe").classList.remove("tag-actif-groupe");
+  document.getElementById("tagAsso").classList.remove("tag-actif-asso");
+  document.getElementById("tagPolo").classList.remove("tag-actif-polo");
+  document.getElementById("regionFilter").value = "";
+  updateMap();
+}
+
+/* =========================
+   Mobile : tiroir
+   ========================= */
+function toggleTiroir() {
+  document.getElementById("sidepanel").classList.toggle("open");
+}
+
+/* =========================
+   Overlay image
+   ========================= */
+function openImageOverlay(src, alt) {
+  document.getElementById("overlayImage").src = src;
+  document.getElementById("overlayImage").alt = alt;
+  document.getElementById("imageOverlay").style.display = "flex";
+}
+function closeImageOverlay() {
+  document.getElementById("imageOverlay").style.display = "none";
+}
+
+/* =========================
+   Init
+   ========================= */
+updateMap();
+</script>
+</body>
+</html>
