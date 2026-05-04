@@ -233,6 +233,28 @@ body { margin: 0; font-family: Arial, sans-serif; }
   }
 }
 @media (min-width: 769px) { #tiroir-handle { display: none; } }
+
+/* Filtres pill colorés */
+.filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 2px solid var(--pill-color);
+  font-size: 13px;
+  color: var(--pill-color);
+  background: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+  user-select: none;
+}
+.filter-pill input[type="checkbox"] { display: none; }
+.filter-pill.active {
+  background: var(--pill-color);
+  color: white;
+}
 </style>
 </head>
 <body>
@@ -250,11 +272,14 @@ body { margin: 0; font-family: Arial, sans-serif; }
   </div>
 
   <label>Type :</label>
-  <label style="font-size:13px; color:#444; display:flex; align-items:center; gap:4px; cursor:pointer;">
-    <input type="checkbox" id="filterAsso" onchange="updateMap()"> Association
+  <label class="filter-pill" id="pillGroupe" style="--pill-color:#1565C0;">
+    <input type="checkbox" id="filterGroupe" onchange="updateMap(); togglePill('pillGroupe')"> &#128101; Groupe réseaux sociaux
   </label>
-  <label style="font-size:13px; color:#444; display:flex; align-items:center; gap:4px; cursor:pointer;">
-    <input type="checkbox" id="filterPolo" onchange="updateMap()"> Polo Wheel
+  <label class="filter-pill" id="pillAsso" style="--pill-color:#E65100;">
+    <input type="checkbox" id="filterAsso" onchange="updateMap(); togglePill('pillAsso')"> &#127963; Association
+  </label>
+  <label class="filter-pill" id="pillPolo" style="--pill-color:#6A1B9A;">
+    <input type="checkbox" id="filterPolo" onchange="updateMap(); togglePill('pillPolo')"> &#127953; Polo Wheel
   </label>
 
   <label>Région :</label>
@@ -577,8 +602,22 @@ function buildMarker(e) {
 /* =========================
    Mise à jour carte
    ========================= */
+
+function togglePill(id) {
+  const pill = document.getElementById(id);
+  const cb = pill.querySelector('input[type="checkbox"]');
+  pill.classList.toggle('active', cb.checked);
+}
+
+function resetPills() {
+  ['pillGroupe','pillAsso','pillPolo'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+}
+
 function updateMap() {
   markersLayer.clearLayers();
+  const filtreGroupe = document.getElementById("filterGroupe").checked;
   const filtreAsso   = document.getElementById("filterAsso").checked;
   const filtrePolo   = document.getElementById("filterPolo").checked;
   const filtreRegion = document.getElementById("regionFilter").value;
@@ -588,10 +627,11 @@ function updateMap() {
     if (e.lat === null || e.lng === null || isNaN(e.lat) || isNaN(e.lng)) continue;
 
     // Filtre type : si une checkbox est cochée, le point doit matcher AU MOINS une cochée
-    if (filtreAsso || filtrePolo) {
+    if (filtreGroupe || filtreAsso || filtrePolo) {
+      const matchGroupe = filtreGroupe && getCategorie(e) === "groupe";
       const matchAsso = filtreAsso && isAsso(e);
       const matchPolo = filtrePolo && isPolo(e);
-      if (!matchAsso && !matchPolo) continue;
+      if (!matchGroupe && !matchAsso && !matchPolo) continue;
     }
 
     // Filtre région (depuis coordonnées)
@@ -750,9 +790,11 @@ document.getElementById("regionFilter").addEventListener("change", updateMap);
    Tout afficher
    ========================= */
 function toutAfficher() {
+  document.getElementById("filterGroupe").checked = false;
   document.getElementById("filterAsso").checked  = false;
   document.getElementById("filterPolo").checked  = false;
   document.getElementById("regionFilter").value  = "";
+  resetPills();
   updateMap();
 }
 
