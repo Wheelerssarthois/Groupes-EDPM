@@ -8,13 +8,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root{
-    --bg:#101820;
-    --panel:#182430;
-    --panel-border:#2A3B48;
-    --text:#EAEDEF;
-    --text-dim:#9FB0BA;
+    --bg:#2C3742;
+    --panel:#374350;
+    --panel-border:#4C5A67;
+    --text:#F5F7F8;
+    --text-dim:#C2CBD2;
     --existe:#FFC845;
-    --aucune:#26343E;
+    --aucune:#57646F;
     --accent:#FFC845;
   }
   *{box-sizing:border-box;}
@@ -30,6 +30,11 @@
   }
   header h1{ font-size:17px; margin:0; font-weight:600; letter-spacing:0.2px; }
   header p{ margin:0; font-size:13px; color:var(--text-dim); }
+  #dept-select{
+    margin-left:auto; padding:7px 10px; border-radius:4px;
+    background:var(--panel); color:var(--text); border:1px solid var(--panel-border);
+    font-size:13px; font-family:inherit;
+  }
   #main{ flex:1; display:flex; min-height:0; }
   #map{ flex:1; background:var(--bg); }
   #side{
@@ -46,6 +51,24 @@
   .pdf-link:hover{ opacity:0.85; }
   .pdf-missing{
     margin-top:4px; font-size:13px; color:var(--text-dim); font-style:italic;
+  }
+  #side-national{
+    margin-top:24px; padding-top:16px; border-top:1px solid var(--panel-border);
+  }
+  #side-national h3{
+    font-size:13px; text-transform:uppercase; letter-spacing:0.4px;
+    color:var(--text-dim); margin:0 0 10px 0; font-weight:600;
+  }
+  #national-list{ list-style:none; margin:0; padding:0; }
+  #national-list li{ margin-bottom:10px; }
+  #national-list a{
+    color:var(--text); text-decoration:none; font-size:13px; line-height:1.4;
+    display:block; padding:8px 10px; border-radius:4px; background:rgba(0,0,0,0.12);
+  }
+  #national-list a:hover{ background:rgba(0,0,0,0.22); }
+  #national-list .texte-missing{
+    font-size:13px; line-height:1.4; color:var(--text-dim); font-style:italic;
+    display:block; padding:8px 10px;
   }
   #legend{
     padding:10px 20px; border-top:1px solid var(--panel-border);
@@ -64,14 +87,23 @@
   <header>
     <h1>Arrêtés préfectoraux EDPM par département</h1>
     <p>Clique sur un département coloré pour ouvrir le PDF de l'arrêté qui s'y applique</p>
+    <select id="dept-select">
+      <option value="">Aller à un département avec arrêté...</option>
+    </select>
   </header>
   <div id="main">
     <div id="map"></div>
     <div id="side">
-      <div id="empty-state">
-        Clique sur un département coloré pour ouvrir le PDF de l'arrêté.
-        <br><br>
-        Les départements en gris foncé n'ont, à ma connaissance, aucun arrêté recensé pour l'instant.
+      <div id="side-dept">
+        <div id="empty-state">
+          Clique sur un département coloré, ou utilise le menu en haut, pour ouvrir le PDF de l'arrêté.
+          <br><br>
+          Les départements en gris n'ont, à ma connaissance, aucun arrêté recensé pour l'instant.
+        </div>
+      </div>
+      <div id="side-national">
+        <h3>Textes de loi nationaux</h3>
+        <ul id="national-list"></ul>
       </div>
     </div>
   </div>
@@ -156,23 +188,23 @@ Object.entries(arretes).forEach(([key, entry]) => {
 const map = L.map('map', { zoomControl: true, attributionControl: true })
   .setView([46.6, 2.4], 6);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_3lyq_1_88b25a59456d7a7e32b86b3f', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_3lyq_1_88b25a59456d7a7e32b86b3f', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 12
 }).addTo(map);
 
-const sideEl = document.getElementById('side');
+const sideDeptEl = document.getElementById('side-dept');
 
 function showEntry(nomDept, entry){
   if(!entry){
-    sideEl.innerHTML = `
+    sideDeptEl.innerHTML = `
       <h2>${nomDept}</h2>
       <div id="empty-state">Aucun arrêté préfectoral EDPM recensé pour ce département pour l'instant.</div>
     `;
     return;
   }
   const lienValide = entry.lien && entry.lien.toLowerCase().endsWith('.pdf');
-  sideEl.innerHTML = `
+  sideDeptEl.innerHTML = `
     <h2>${entry.nom}</h2>
     ${lienValide
       ? `<a class="pdf-link" href="${entry.lien}" target="_blank" rel="noopener">Ouvrir l'arrêté (PDF)</a>`
@@ -192,18 +224,79 @@ function styleForFeature(feature){
   };
 }
 
+const layersByCode = {};
 const geoLayer = L.geoJSON(geojsonData, {
   style: styleForFeature,
   onEachFeature: function(feature, layer){
     const code = feature.properties.code;
     const nom = feature.properties.nom;
     const entry = codeToEntry[code];
+    layersByCode[code] = layer;
     layer.on('click', () => showEntry(nom, entry));
     layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#FFC845' }));
     layer.on('mouseout', () => geoLayer.resetStyle(layer));
     layer.bindTooltip(`${nom}${entry ? ' : arrêté existant' : ''}`, { sticky: true });
   }
 }).addTo(map);
+
+// -----------------------------------------------------------------
+// 4) MENU DEROULANT "aller a un departement"
+//    Se remplit tout seul a partir des lignes de dataBrute plus haut,
+//    pas besoin d'y toucher.
+// -----------------------------------------------------------------
+const selectEl = document.getElementById('dept-select');
+Object.entries(arretes)
+  .sort((a, b) => a[1].nom.localeCompare(b[1].nom, 'fr'))
+  .forEach(([key, entry]) => {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = entry.nom;
+    selectEl.appendChild(opt);
+  });
+
+selectEl.addEventListener('change', () => {
+  const key = selectEl.value;
+  if (!key) return;
+  const entry = arretes[key];
+  const codes = key.split('-');
+  const layers = codes.map(c => layersByCode[c]).filter(Boolean);
+  if (layers.length) {
+    map.fitBounds(L.featureGroup(layers).getBounds(), { maxZoom: 9 });
+  }
+  showEntry(entry.nom, entry);
+});
+
+// -----------------------------------------------------------------
+// 5) TEXTES DE LOI NATIONAUX (EDPM)
+//    ==================================================
+//    MEME PRINCIPE QUE POUR LES DEPARTEMENTS : une ligne par texte,
+//    colonnes separees par "|" : Nom du texte | chemin du PDF.
+//    Depose les PDF dans le sous-dossier "arretes/national/" de ton
+//    depot GitHub (a cote des PDF departementaux, mais range a part),
+//    et mets ici le meme genre de chemin relatif que pour un
+//    departement, ex. arretes/national/decret_2019-1082.pdf
+//    Si tu n'as pas encore le fichier, laisse "(a completer)" a la
+//    place du chemin : ca s'affiche en texte simple au lieu d'un lien casse.
+// -----------------------------------------------------------------
+const textesNationauxBrute = `
+Décret n°2019-1082 du 23 octobre 2019 relatif à la réglementation des EDPM|arretes/national/decret_2019-1082.pdf
+Décret n°2022-31 du 14 janvier 2022, ajoute la notion de cyclomobiles légers|arretes/national/decret_2022-31.pdf
+Arrêté du 15 mars 2024 relatif à la modification de la signalisation routière|arretes/national/arrete_2024-03-15_signalisation.pdf
+`;
+
+const listeNationaleEl = document.getElementById('national-list');
+textesNationauxBrute.trim().split('\n').forEach(ligne => {
+  ligne = ligne.trim();
+  if (!ligne) return;
+  const [nom, lien] = ligne.split('|').map(s => s.trim());
+  const li = document.createElement('li');
+  if (lien && lien.toLowerCase().endsWith('.pdf')) {
+    li.innerHTML = `<a href="${lien}" target="_blank" rel="noopener">${nom}</a>`;
+  } else {
+    li.innerHTML = `<span class="texte-missing">${nom} (lien pas encore renseigné)</span>`;
+  }
+  listeNationaleEl.appendChild(li);
+});
 </script>
 </body>
 </html>
