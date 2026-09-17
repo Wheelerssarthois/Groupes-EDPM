@@ -154,7 +154,7 @@ Object.entries(arretes).forEach(([key, entry]) => {
 const map = L.map('map', { zoomControl: true, attributionControl: true })
   .setView([46.6, 2.4], 6);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_3lyq_1_88b25a59456d7a7e32b86b3f', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 12
 }).addTo(map);
