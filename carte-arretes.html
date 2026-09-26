@@ -99,11 +99,40 @@
           Clique sur un département coloré, ou utilise le menu en haut, pour ouvrir le PDF de l'arrêté.
           <br><br>
           Les départements en gris n'ont, à ma connaissance, aucun arrêté recensé pour l'instant.
+          <br><br>
+          Pour toute modification ou mise à jour de la carte, vous pouvez contacter les Wheelers Sarthois.
         </div>
       </div>
       <div id="side-national">
         <h3>Textes de loi nationaux</h3>
         <ul id="national-list"></ul>
+      </div>
+      <div id="retour-groupes-bloc" style="
+        margin-top: 20px;
+        padding: 14px;
+        border-radius: 10px;
+        background: rgba(255,200,69,0.08);
+        border-left: 4px solid var(--existe);
+        font-size: 13px;
+        color: var(--text);
+        line-height: 1.5;
+      ">
+        <div style="font-weight:700; font-size:14px; color:var(--existe); margin-bottom:6px;">
+          🗺️ Carte des groupes EDPM
+        </div>
+        <p style="margin:0 0 10px 0;">
+          Retrouve les groupes réseaux sociaux, associations et clubs de polo wheel en France sur la carte des Wheelers Sarthois.
+        </p>
+        <a href="index.html" style="
+          display: inline-block;
+          background: var(--existe);
+          color: #1a1405;
+          padding: 6px 14px;
+          border-radius: 20px;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 600;
+        ">Voir la carte des groupes →</a>
       </div>
     </div>
   </div>
@@ -163,6 +192,7 @@ const dataBrute = `
 50|Manche|arretes/arrete_manche.pdf
 59|Nord|arretes/arrete_nord.pdf
 60|Oise|arretes/arrete_oise.pdf
+62|Pas-de-Calais|arretes/arrete_pas-de-calais.pdf
 75|Paris|arretes/arrete_paris.pdf
 77|Seine-et-Marne|arretes/arrete_seine_et_marne.pdf
 78|Yvelines|arretes/arrete_yvelines.pdf
@@ -207,7 +237,11 @@ function showEntry(nomDept, entry){
   if(!entry){
     sideDeptEl.innerHTML = `
       <h2>${nomDept}</h2>
-      <div id="empty-state">Aucun arrêté préfectoral EDPM recensé pour ce département pour l'instant.</div>
+      <div id="empty-state">
+        Aucun arrêté préfectoral EDPM recensé pour ce département pour l'instant.
+        <br><br>
+        Pour toute modification ou mise à jour de la carte, vous pouvez contacter les Wheelers Sarthois.
+      </div>
     `;
     return;
   }
