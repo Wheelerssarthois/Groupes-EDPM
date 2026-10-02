@@ -99,40 +99,11 @@
           Clique sur un département coloré, ou utilise le menu en haut, pour ouvrir le PDF de l'arrêté.
           <br><br>
           Les départements en gris n'ont, à ma connaissance, aucun arrêté recensé pour l'instant.
-          <br><br>
-          Pour toute modification ou mise à jour de la carte, vous pouvez contacter les Wheelers Sarthois.
         </div>
       </div>
       <div id="side-national">
         <h3>Textes de loi nationaux</h3>
         <ul id="national-list"></ul>
-      </div>
-      <div id="retour-groupes-bloc" style="
-        margin-top: 20px;
-        padding: 14px;
-        border-radius: 10px;
-        background: rgba(255,200,69,0.08);
-        border-left: 4px solid var(--existe);
-        font-size: 13px;
-        color: var(--text);
-        line-height: 1.5;
-      ">
-        <div style="font-weight:700; font-size:14px; color:var(--existe); margin-bottom:6px;">
-          🗺️ Carte des groupes EDPM
-        </div>
-        <p style="margin:0 0 10px 0;">
-          Retrouve les groupes réseaux sociaux, associations et clubs de polo wheel en France sur la carte des Wheelers Sarthois.
-        </p>
-        <a href="index.html" style="
-          display: inline-block;
-          background: var(--existe);
-          color: #1a1405;
-          padding: 6px 14px;
-          border-radius: 20px;
-          text-decoration: none;
-          font-size: 13px;
-          font-weight: 600;
-        ">Voir la carte des groupes →</a>
       </div>
     </div>
   </div>
@@ -186,23 +157,25 @@ const dataBrute = `
 07|Ardèche|arretes/arrete_ardeche.pdf
 10|Aube|arretes/arrete_aube.pdf
 18|Cher|arretes/arrete_cher.pdf
+92|Hauts-de-Seine|arretes/arrete_hauts-de-seine.pdf
 34|Herault|arretes/arrete_herault.pdf
 36|Indre|arretes/arrete_indre.pdf
-42|Loire|arretes/arrete_loire.pdf
 44|Loire-Atlantique|arretes/arrete_loire-atlantique.pdf
+42|Loire|arretes/arrete_loire.pdf
 50|Manche|arretes/arrete_manche.pdf
 59|Nord|arretes/arrete_nord.pdf
 60|Oise|arretes/arrete_oise.pdf
-62|Pas-de-Calais|arretes/arrete_pas-de-calais.pdf
 75|Paris|arretes/arrete_paris.pdf
-77|Seine-et-Marne|arretes/arrete_seine_et_marne.pdf
-78|Yvelines|arretes/arrete_yvelines.pdf
+62|Pas-de-Calais|arretes/arrete_pas-de-calais.pdf
+69|Rhône|arretes/arrete_rhone.pdf
+71|Saône-et-Loire|arretes/arrete_saone-et-loire.pdf
+77|Seine-et-Marne|arretes/arrete_seine-et-marne.pdf
+93|Seine-Saint-Denis|arretes/arrete_seine-saint-denis.pdf
 80|Somme|arretes/arrete_somme.pdf
+94|Val-de-Marne|arretes/arrete_val-de-marne.pdf
 84|Vaucluse|arretes/arrete_vaucluse.pdf
 89|Yonne|arretes/arrete_yonne.pdf
-92|Hauts-de-Seine|arretes/arrete_hauts-de-seine.pdf
-93|Seine-Saint-Denis|arretes/arrete_seine-saint-denis.pdf
-94|Val-de-Marne|arretes/arrete_val-de-marne.pdf
+78|Yvelines|arretes/arrete_yvelines.pdf
 `;
 
 // Transforme le texte brut ci-dessus en donnees utilisables par la carte.
@@ -238,11 +211,7 @@ function showEntry(nomDept, entry){
   if(!entry){
     sideDeptEl.innerHTML = `
       <h2>${nomDept}</h2>
-      <div id="empty-state">
-        Aucun arrêté préfectoral EDPM recensé pour ce département pour l'instant.
-        <br><br>
-        Pour toute modification ou mise à jour de la carte, vous pouvez contacter les Wheelers Sarthois.
-      </div>
+      <div id="empty-state">Aucun arrêté préfectoral EDPM recensé pour ce département pour l'instant.</div>
     `;
     return;
   }
