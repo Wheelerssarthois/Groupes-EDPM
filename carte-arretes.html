@@ -150,21 +150,6 @@ const geojsonData = {"type":"FeatureCollection","features":[{"type":"Feature","g
 
 // -----------------------------------------------------------------
 // 2) LES DEPARTEMENTS AVEC UN ARRETE
-//    ==================================================
-//    C'EST LA SEULE PARTIE A MODIFIER POUR METTRE A JOUR LA CARTE.
-//    ==================================================
-//
-//    Chaque ligne = un departement (ou un groupe de departements).
-//    Les colonnes sont separees par le caractere "|" (barre verticale).
-//    Seulement 3 colonnes :
-//
-//    1. Code(s) departement(s)  -> "89"  ou "75-92-93-94" si un meme
-//                                  arrete couvre plusieurs departements
-//    2. Nom                      -> "Yonne"
-//    3. Lien vers le PDF         -> chemin RELATIF vers le fichier dans ton
-//                                  depot, ex. arretes/arrete_nord.pdf
-//                                  (pas besoin de l'adresse complete
-//                                  https://wheelerssarthois.github.io/... :
 // -----------------------------------------------------------------
 const dataBrute = `
 02|Aisne|arretes/arrete_aisne.pdf
@@ -200,8 +185,7 @@ const dataBrute = `
 
 `;
 
-// Transforme le texte brut ci-dessus en donnees utilisables par la carte.
-// (partie technique, pas besoin d'y toucher)
+// Transformer)
 const arretes = {};
 dataBrute.trim().split('\n').forEach(ligne => {
   ligne = ligne.trim();
@@ -212,7 +196,7 @@ dataBrute.trim().split('\n').forEach(ligne => {
 });
 
 // -----------------------------------------------------------------
-// 3) LE RESTE : affichage de la carte (pas besoin d'y toucher)
+// 3) affichage de la carte
 // -----------------------------------------------------------------
 const codeToEntry = {};
 Object.entries(arretes).forEach(([key, entry]) => {
@@ -279,8 +263,6 @@ const geoLayer = L.geoJSON(geojsonData, {
 
 // -----------------------------------------------------------------
 // 4) MENU DEROULANT "aller a un departement"
-//    Se remplit tout seul a partir des lignes de dataBrute plus haut,
-//    pas besoin d'y toucher.
 // -----------------------------------------------------------------
 const selectEl = document.getElementById('dept-select');
 Object.entries(arretes)
@@ -306,15 +288,6 @@ selectEl.addEventListener('change', () => {
 
 // -----------------------------------------------------------------
 // 5) TEXTES DE LOI NATIONAUX (EDPM)
-//    ==================================================
-//    MEME PRINCIPE QUE POUR LES DEPARTEMENTS : une ligne par texte,
-//    colonnes separees par "|" : Nom du texte | chemin du PDF.
-//    Depose les PDF dans le sous-dossier "arretes/national/" de ton
-//    depot GitHub (a cote des PDF departementaux, mais range a part),
-//    et mets ici le meme genre de chemin relatif que pour un
-//    departement, ex. arretes/national/decret_2019-1082.pdf
-//    Si tu n'as pas encore le fichier, laisse "(a completer)" a la
-//    place du chemin : ca s'affiche en texte simple au lieu d'un lien casse.
 // -----------------------------------------------------------------
 const textesNationauxBrute = `
 Décret n°2019-1082 du 23 octobre 2019 relatif à la réglementation des EDPM|arretes/national/decret_2019-1082.pdf
