@@ -70,6 +70,7 @@
     width:320px; flex-shrink:0; border-left:1px solid var(--panel-border);
     background:var(--panel); overflow-y:auto; padding:18px;
   }
+  #side-handle{ display:none; }
   #side h2{ font-size:16px; margin:0 0 12px 0; }
   #empty-state{ color:var(--text-dim); font-size:14px; line-height:1.5; }
   .pdf-link{
@@ -99,6 +100,29 @@
     font-size:13px; line-height:1.4; color:var(--text-dim); font-style:italic;
     display:block; padding:8px 10px;
   }
+  /* Détails (casque / gilet / circulation) */
+  .tag{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px;
+        background:rgba(79,195,247,0.16); color:#4FC3F7; margin:-4px 0 12px 0; }
+  .tag.pref{ background:rgba(255,200,69,0.16); color:var(--existe); }
+  .kv{ margin:4px 0 14px 0; border:1px solid var(--panel-border); border-radius:6px; overflow:hidden; }
+  .kv-row{ display:flex; gap:10px; padding:8px 10px; font-size:13px; line-height:1.4; }
+  .kv-row + .kv-row{ border-top:1px solid var(--panel-border); }
+  .kv-label{ width:78px; flex-shrink:0; color:var(--text-dim); font-size:12px; }
+  .kv-val{ flex:1; }
+  .kv-val.dim, .kv-fine.dim{ color:var(--text-dim); }
+  .kv-fine{ display:block; margin-top:2px; font-size:12px; color:var(--text-dim); }
+  .communes-bloc{ margin-top:18px; padding-top:14px; border-top:1px solid var(--panel-border); }
+  .communes-bloc h3, .rule-default h3{ font-size:13px; text-transform:uppercase; letter-spacing:0.4px;
+        color:var(--text-dim); margin:0 0 8px 0; font-weight:600; }
+  .commune-btn{ font:inherit; font-size:12px; cursor:pointer; margin:0 6px 6px 0; padding:4px 10px;
+        border-radius:14px; background:rgba(79,195,247,0.12); color:var(--text); border:1px solid rgba(79,195,247,0.5); }
+  .commune-btn:hover{ background:rgba(79,195,247,0.25); }
+  #communes-note{ flex-basis:100%; font-size:11.5px; line-height:1.4; }
+  .disclaimer{ margin-top:14px; font-size:11.5px; line-height:1.45; color:var(--text-dim); }
+  .rule-default{ margin-top:16px; padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.12); font-size:12.5px; line-height:1.5; }
+  .rule-default p{ margin:0 0 4px 0; }
+  #legend .swatch.dot{ border-radius:50%; background:#4FC3F7; border:1.5px solid #0B1116; }
+  #legend label{ display:flex; align-items:center; gap:6px; cursor:pointer; margin-left:auto; }
   #legend{
     padding:10px 20px; border-top:1px solid var(--panel-border);
     display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--text-dim);
@@ -112,7 +136,16 @@
     .om-box{ flex:1; width:auto; height:60px; }
     .om-label{ font-size:8px; padding:1px 4px; }
     #main{ flex-direction:column; }
-    #side{ width:auto; border-left:none; border-top:1px solid var(--panel-border); max-height:45vh; }
+    #side{
+      width:auto; border-left:none; border-top:1px solid var(--panel-border);
+      flex:0 0 auto; height:var(--side-h, 38vh); max-height:85vh; padding-top:0;
+    }
+    #side-handle{
+      display:flex; justify-content:center; align-items:center;
+      position:sticky; top:0; z-index:5; margin:0 -18px 8px; padding:12px 0 10px;
+      background:var(--panel); cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none;
+    }
+    #side-handle span{ width:48px; height:5px; border-radius:3px; background:var(--text-dim); opacity:0.75; }
   }
 </style>
 </head>
@@ -120,9 +153,9 @@
 <div id="app">
   <header>
     <h1>Arrêtés préfectoraux EDPM par département</h1>
-    <p>Clique sur un département coloré pour ouvrir le PDF de l'arrêté qui s'y applique</p>
+    <p>Clique sur un département coloré (arrêté préfectoral) ou sur un point bleu (communication officielle d'une commune)</p>
     <select id="dept-select">
-      <option value="">Aller à un département avec arrêté...</option>
+      <option value="">Aller à un département ou une commune...</option>
     </select>
   </header>
   <div id="main">
@@ -134,6 +167,7 @@
       </div>
     </div>
     <div id="side">
+      <div id="side-handle" role="button" aria-label="Déplacer le volet (glisser vers le haut ou le bas, ou toucher pour replier)"><span></span></div>
       <div id="side-dept">
         <div id="empty-state">
           Clique sur un département coloré, ou utilise le menu en haut, pour ouvrir le PDF de l'arrêté.
@@ -146,6 +180,12 @@
       <div id="side-national">
         <h3>Textes de loi nationaux</h3>
         <ul id="national-list"></ul>
+        <div class="rule-default">
+          <h3>Règle nationale par défaut</h3>
+          <p><strong>Casque :</strong> non obligatoire en agglomération, obligatoire hors agglomération (35 € à 135 € hors agglo).</p>
+          <p><strong>Gilet :</strong> obligatoire la nuit ou si visibilité insuffisante (35 €).</p>
+          <p><strong>Attention :</strong> cette règle s'applique seulement en l'absence d'arrêté plus restrictif. Un arrêté préfectoral ou municipal peut rendre le casque et/ou le gilet obligatoires, y compris en agglomération. Vérifiez toujours l'arrêté du département et celui de la commune.</p>
+        </div>
       </div>
       <div id="retour-groupes-bloc" style="
         margin-top: 20px;
@@ -179,6 +219,9 @@
   <div id="legend">
     <div class="item"><span class="swatch" style="background:var(--existe)"></span> Arrêté préfectoral existant</div>
     <div class="item"><span class="swatch" style="background:var(--aucune)"></span> Aucun arrêté recensé</div>
+    <div class="item"><span class="swatch dot"></span> Communication officielle d'une commune</div>
+    <label><input type="checkbox" id="toggle-communes"> Afficher les communications officielles des communes</label>
+    <div id="communes-note"></div>
   </div>
 </div>
 
@@ -196,6 +239,7 @@ const dataBrute = `
 03|Allier|arretes/arrete_allier.pdf
 06|Alpes-Maritimes|arretes/arrete_alpes-maritimes.pdf
 07|Ardèche|arretes/arrete_ardeche.pdf
+09|Ariège|
 10|Aube|arretes/arrete_aube.pdf
 18|Cher|arretes/arrete_cher.pdf
 21|Côte-d'Or|arretes/arrete_cote-d-or.pdf
@@ -257,7 +301,42 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=
 
 const sideDeptEl = document.getElementById('side-dept');
 
-function showEntry(nomDept, entry){
+function esc(t){
+  return String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+// Tableau « casque / gilet / circulation » (arrêtés préfectoraux et municipaux)
+function kvHtml(d){
+  const rows = [];
+  const add = (label, val, fine) => {
+    if (!val) return;
+    const dim = /^selon code de la route$/i.test(val) ? ' dim' : '';
+    const fineDim = fine && /^(selon|non précisé)/i.test(fine) ? ' dim' : '';
+    rows.push(`<div class="kv-row"><div class="kv-label">${label}</div><div class="kv-val${dim}">${esc(val)}${fine ? `<span class="kv-fine${fineDim}">Sanction : ${esc(fine)}</span>` : ''}</div></div>`);
+  };
+  add('Casque', d.casque, d.amendeCasque);
+  add('Gilet', d.gilet, d.amendeGilet);
+  add('Circulation', d.restrictions);
+  return rows.length ? `<div class="kv">${rows.join('')}</div>` : '';
+}
+
+function communesHtml(code){
+  const list = communes.filter(c => c.dept === code);
+  if (!list.length) return '';
+  return `<div class="communes-bloc"><h3>Communications officielles de communes dans ce département</h3>${
+    list.map(c => `<button type="button" class="commune-btn" data-id="${c.id}">${esc(c.nom)}</button>`).join('')
+  }</div>`;
+}
+
+function pdfBlock(lien, manquant, libelle = "Ouvrir l'arrêté (PDF)"){
+  const ok = lien && lien.toLowerCase().endsWith('.pdf');
+  return ok
+    ? `<a class="pdf-link" href="${lien}" target="_blank" rel="noopener">${libelle}</a>`
+    : `<div class="pdf-missing">${manquant}</div>`;
+}
+
+function showEntry(nomDept, entry, code){
+  ensureSideOpen();
   if(!entry){
     sideDeptEl.innerHTML = `
       <h2>${nomDept}</h2>
@@ -266,16 +345,26 @@ function showEntry(nomDept, entry){
         <br><br>
         Pour toute modification ou mise à jour de la carte, vous pouvez contacter les Wheelers Sarthois.
       </div>
+      ${communesHtml(code)}
     `;
     return;
   }
-  const lienValide = entry.lien && entry.lien.toLowerCase().endsWith('.pdf');
   sideDeptEl.innerHTML = `
     <h2>${entry.nom}</h2>
-    ${lienValide
-      ? `<a class="pdf-link" href="${entry.lien}" target="_blank" rel="noopener">Ouvrir l'arrêté (PDF)</a>`
-      : `<div class="pdf-missing">Lien vers le PDF pas encore renseigné.</div>`
-    }
+    <div class="tag pref">Arrêté préfectoral</div>
+    ${detailsPref[code] ? kvHtml(detailsPref[code]) : ''}
+    ${pdfBlock(entry.lien, 'Lien vers le PDF pas encore renseigné.')}
+    ${communesHtml(code)}
+  `;
+}
+
+function showCommune(c){
+  ensureSideOpen();
+  sideDeptEl.innerHTML = `
+    <h2>${esc(c.nom)} (${esc(c.dept)})</h2>
+    <div class="tag">Communication officielle de la commune</div>
+    ${pdfBlock(c.lien, "Communication officielle pas encore renseignée.", "Ouvrir la communication officielle (PDF)")}
+    <div class="disclaimer">Mise à jour le ${dateMajCommunes}. ${avertissementCommunes}</div>
   `;
 }
 
@@ -301,7 +390,7 @@ function makeGeoLayer(data, options = {}){
       const nom = feature.properties.nom;
       const entry = codeToEntry[code];
       layersByCode[code] = layer;
-      layer.on('click', () => showEntry(nom, entry));
+      layer.on('click', () => showEntry(nom, entry, code));
       layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#FFC845' }));
       layer.on('mouseout', () => gl.resetStyle(layer));
       if (options.tooltip !== false) {
@@ -369,29 +458,191 @@ omToggle.addEventListener('click', () => setOutreMerOpen(outreMerWrap.classList.
 setOutreMerOpen(!window.matchMedia('(max-width: 760px)').matches);
 
 // -----------------------------------------------------------------
-// 4) MENU DEROULANT "aller a un departement"
+// 3ter) COMMUNICATIONS OFFICIELLES DES COMMUNES (points sur la carte)
+// Format : commune|département|latitude|longitude|lien pdf
+// (lien vide tant que la communication n'est pas retrouvée ; sinon arretes_municipal/nomdelaville.pdf)
+// -----------------------------------------------------------------
+const communesBrute = `
+Amiens|80|49.894|2.296|arretes_municipal/amiens.pdf
+Angers|49|47.478|-0.563|arretes_municipal/angers.pdf
+Annemasse|74|46.194|6.236|arretes_municipal/annemasse.pdf
+Aurillac|15|44.927|2.444|arretes_municipal/aurillac.pdf
+Avignon|84|43.949|4.806|arretes_municipal/avignon.pdf
+Barlin|62|50.452|2.617|arretes_municipal/barlin.pdf
+Beauvais|60|49.43|2.081|arretes_municipal/beauvais.pdf
+Bourg-lès-Valence|26|44.965|4.887|arretes_municipal/bourg-les-valence.pdf
+Château-Thierry|02|49.044|3.406|arretes_municipal/chateau-thierry.pdf
+Compiègne|60|49.418|2.826|arretes_municipal/compiegne.pdf
+Franconville|95|48.988|2.231|arretes_municipal/franconville.pdf
+Grenoble|38|45.189|5.725|arretes_municipal/grenoble.pdf
+Houchin|62|50.483|2.592|arretes_municipal/houchin.pdf
+Le Mans|72|48.007|0.197|arretes_municipal/le-mans.pdf
+Maisnil-lès-Ruitz|62|50.443|2.583|arretes_municipal/maisnil-les-ruitz.pdf
+Metz|57|49.119|6.176|arretes_municipal/metz.pdf
+Montbéliard|25|47.51|6.798|arretes_municipal/montbeliard.pdf
+Montmorency|95|48.988|2.322|arretes_municipal/montmorency.pdf
+Montpellier|34|43.611|3.877|arretes_municipal/montpellier.pdf
+Montélimar|26|44.558|4.75|arretes_municipal/montelimar.pdf
+Nancy|54|48.692|6.184|arretes_municipal/nancy.pdf
+Narbonne|11|43.184|3.004|arretes_municipal/narbonne.pdf
+Nîmes|30|43.837|4.36|arretes_municipal/nimes.pdf
+Niort|79|46.323|-0.464|arretes_municipal/niort.pdf
+Nœux-les-Mines|62|50.477|2.663|arretes_municipal/noeux-les-mines.pdf
+Perpignan|66|42.689|2.895|arretes_municipal/perpignan.pdf
+Romilly-sur-Seine|10|48.517|3.726|arretes_municipal/romilly-sur-seine.pdf
+Ruitz|62|50.456|2.569|arretes_municipal/ruitz.pdf
+Sains-en-Gohelle|62|50.447|2.658|arretes_municipal/sains-en-gohelle.pdf
+Saint-Denis|93|48.936|2.357|arretes_municipal/saint-denis.pdf
+Saint-Jean-de-Védas|34|43.577|3.832|arretes_municipal/saint-jean-de-vedas.pdf
+Saint-Quentin -de-Baron|33|44.817|-0.286|arretes_municipal/saint-quentin-de-baron.pdf
+Vence|06|43.723|7.112|arretes_municipal/vence.pdf
+Villeurbanne|69|45.767|4.88|arretes_municipal/villeurbanne.pdf
+Émerainville|77|48.816|2.634|arretes_municipal/emerainville.pdf
+Étampes|91|48.435|2.161|arretes_municipal/etampes.pdf
+`;
+
+const communes = communesBrute.trim().split('\n').map((ligne, i) => {
+  const [nom, dept, lat, lng, lien] = ligne.split('|').map(x => x.trim());
+  return { id: 'c' + i, nom, dept, lat: parseFloat(lat), lng: parseFloat(lng), lien: lien || '' };
+});
+// Date de dernière mise à jour de la liste des communes (à modifier à chaque mise à jour)
+const dateMajCommunes = '07/11/2026';
+const avertissementCommunes = `Liste non exhaustive : une commune absente peut avoir publié une communication officielle ou un arrêté. Vérifiez toujours auprès de la mairie.`;
+document.getElementById('communes-note').textContent =
+  `Communications officielles des communes : mise à jour le ${dateMajCommunes}. ${avertissementCommunes}`;
+
+const communesById = {};
+communes.forEach(c => { communesById[c.id] = c; });
+
+// Détails des arrêtés préfectoraux (affichés sous le titre du département)
+const detailsPref = {
+  '09': { casque: 'Obligatoire en permanence', gilet: 'Obligatoire en permanence',
+          amendeCasque: 'non précisé', amendeGilet: 'non précisé' }
+};
+
+const communeLayer = L.layerGroup(); // masquée par défaut : cochée via la légende
+communes.forEach(c => {
+  const mk = L.circleMarker([c.lat, c.lng], { radius: 6, fillColor: '#4FC3F7', fillOpacity: 0.95, color: '#0B1116', weight: 1.5 });
+  mk.bindTooltip(`${c.nom} (${c.dept}) : communication officielle`, { sticky: true });
+  mk.on('click', () => showCommune(c));
+  mk.on('mouseover', () => mk.setStyle({ weight: 3, color: '#FFFFFF' }));
+  mk.on('mouseout', () => mk.setStyle({ weight: 1.5, color: '#0B1116' }));
+  mk.addTo(communeLayer);
+});
+
+function openCommune(id){
+  const c = communesById[id];
+  if (!c) return;
+  if (!map.hasLayer(communeLayer)) { document.getElementById('toggle-communes').checked = true; communeLayer.addTo(map); }
+  map.setView([c.lat, c.lng], Math.max(map.getZoom(), 10));
+  showCommune(c);
+}
+
+// Boutons « communes du département » dans le panneau
+sideDeptEl.addEventListener('click', e => {
+  const b = e.target.closest('.commune-btn');
+  if (b) openCommune(b.dataset.id);
+});
+
+// Case à cocher dans la légende
+document.getElementById('toggle-communes').addEventListener('change', e => {
+  if (e.target.checked) communeLayer.addTo(map); else map.removeLayer(communeLayer);
+});
+
+// -----------------------------------------------------------------
+// 4) MENU DEROULANT « aller à un département / une commune »
 // -----------------------------------------------------------------
 const selectEl = document.getElementById('dept-select');
+
+const grpPref = document.createElement('optgroup');
+grpPref.label = 'Arrêtés préfectoraux';
 Object.entries(arretes)
   .sort((a, b) => a[1].nom.localeCompare(b[1].nom, 'fr'))
   .forEach(([key, entry]) => {
     const opt = document.createElement('option');
     opt.value = key;
     opt.textContent = entry.nom;
-    selectEl.appendChild(opt);
+    grpPref.appendChild(opt);
   });
+selectEl.appendChild(grpPref);
+
+const grpCom = document.createElement('optgroup');
+grpCom.label = 'Communications officielles (communes)';
+[...communes].sort((a, b) => a.nom.localeCompare(b.nom, 'fr')).forEach(c => {
+  const opt = document.createElement('option');
+  opt.value = 'm:' + c.id;
+  opt.textContent = `${c.nom} (${c.dept})`;
+  grpCom.appendChild(opt);
+});
+selectEl.appendChild(grpCom);
 
 selectEl.addEventListener('change', () => {
   const key = selectEl.value;
   if (!key) return;
+  if (key.startsWith('m:')) { openCommune(key.slice(2)); return; }
   const entry = arretes[key];
   const codes = key.split('-');
   const layers = codes.map(c => layersByCode[c]).filter(l => l && geoLayer.hasLayer(l));
   if (layers.length) {
     map.fitBounds(L.featureGroup(layers).getBounds(), { maxZoom: 9 });
   }
-  showEntry(entry.nom, entry);
+  showEntry(entry.nom, entry, codes[0]);
 });
+
+// -----------------------------------------------------------------
+// 4bis) VOLET DEPLAÇABLE (mobile) : glisser la poignée pour agrandir / réduire,
+//        ou la toucher pour replier / rouvrir. La carte se redimensionne en direct.
+// -----------------------------------------------------------------
+const sideEl = document.getElementById('side');
+const handleEl = document.getElementById('side-handle');
+const mobileMQ = window.matchMedia('(max-width: 760px)');
+const SIDE_MIN = 40;                       // hauteur replié (px) : seule la poignée reste visible
+const sideOpenH = () => Math.round(window.innerHeight * 0.38);
+
+function setSideH(px){
+  const clamped = Math.max(SIDE_MIN, Math.min(Math.round(window.innerHeight * 0.85), px));
+  sideEl.style.setProperty('--side-h', clamped + 'px');
+}
+let mapRaf = null;
+function refreshMapSize(){
+  if (mapRaf) return;
+  mapRaf = requestAnimationFrame(() => {
+    mapRaf = null;
+    map.invalidateSize({ pan: false });
+    outreMerRefits.forEach(f => f());
+  });
+}
+function ensureSideOpen(){
+  if (mobileMQ.matches && sideEl.getBoundingClientRect().height <= SIDE_MIN + 6) {
+    setSideH(sideOpenH());
+    refreshMapSize();
+  }
+}
+
+let dragY0 = 0, dragH0 = 0, dragMoved = false, dragging = false;
+handleEl.addEventListener('pointerdown', e => {
+  dragging = true; dragMoved = false;
+  dragY0 = e.clientY; dragH0 = sideEl.getBoundingClientRect().height;
+  handleEl.setPointerCapture(e.pointerId);
+});
+handleEl.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dy = dragY0 - e.clientY;           // vers le haut = volet plus grand
+  if (Math.abs(dy) > 4) dragMoved = true;
+  if (dragMoved) { setSideH(dragH0 + dy); refreshMapSize(); }
+});
+function endDrag(){
+  if (!dragging) return;
+  dragging = false;
+  if (!dragMoved) {                        // simple toucher : replier / rouvrir
+    const h = sideEl.getBoundingClientRect().height;
+    setSideH(h <= SIDE_MIN + 6 ? sideOpenH() : SIDE_MIN);
+  }
+  refreshMapSize();
+}
+handleEl.addEventListener('pointerup', endDrag);
+handleEl.addEventListener('pointercancel', endDrag);
+window.addEventListener('resize', refreshMapSize);
 
 // -----------------------------------------------------------------
 // 5) TEXTES DE LOI NATIONAUX (EDPM)
