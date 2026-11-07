@@ -121,20 +121,63 @@
   .disclaimer{ margin-top:14px; font-size:11.5px; line-height:1.45; color:var(--text-dim); }
   .rule-default{ margin-top:16px; padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.12); font-size:12.5px; line-height:1.5; }
   .rule-default p{ margin:0 0 4px 0; }
-  #legend .swatch.dot{ border-radius:50%; background:#4FC3F7; border:1.5px solid #0B1116; }
-  #legend label{ display:flex; align-items:center; gap:6px; cursor:pointer; margin-left:auto; }
+  /* Légende : plus grande et plus contrastée */
   #legend{
-    padding:10px 20px; border-top:1px solid var(--panel-border);
-    display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--text-dim);
+    padding:12px 20px; border-top:1px solid var(--panel-border); background:var(--panel);
+    display:flex; gap:10px 26px; flex-wrap:wrap; align-items:center;
+    font-size:14px; font-weight:500; color:var(--text);
   }
-  #legend .item{ display:flex; align-items:center; gap:6px; }
-  #legend .swatch{ width:12px; height:12px; border-radius:2px; display:inline-block; }
+  #legend .item{ display:flex; align-items:center; gap:9px; }
+  #legend .swatch{ width:20px; height:20px; border-radius:4px; display:inline-block;
+                   border:1px solid rgba(255,255,255,0.4); flex-shrink:0; }
+  #legend .swatch.dot{ border-radius:50%; background:#4FC3F7; border:2.5px solid #FFFFFF;
+                       box-shadow:0 0 0 3px rgba(79,195,247,0.3); }
+  #communes-note{ font-weight:400; color:var(--text-dim); }
+
+  /* Bouton « Afficher les communes » posé sur la carte */
+  .map-toggle{
+    position:absolute; top:12px; right:12px; z-index:1001;
+    display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none;
+    padding:9px 15px; border-radius:24px; font-size:14px; font-weight:600;
+    background:var(--panel); color:var(--text); border:1.5px solid var(--panel-border);
+    box-shadow:0 2px 10px rgba(0,0,0,0.45);
+  }
+  .map-toggle:hover{ border-color:#4FC3F7; }
+  .map-toggle:has(input:checked){ border-color:#4FC3F7; background:rgba(79,195,247,0.2); }
+  .map-toggle input{ width:18px; height:18px; margin:0; accent-color:#4FC3F7; cursor:pointer; }
+  .map-toggle .dot{ width:14px; height:14px; border-radius:50%; background:#4FC3F7;
+                    border:2px solid #FFFFFF; flex-shrink:0; }
+
+  /* Fenêtre contextuelle d'une commune */
+  .leaflet-popup-content-wrapper{ background:var(--panel); color:var(--text);
+        border:1px solid var(--panel-border); border-radius:10px; box-shadow:0 6px 22px rgba(0,0,0,0.5); }
+  .leaflet-popup-tip{ background:var(--panel); }
+  .leaflet-popup-close-button{ color:var(--text-dim) !important; }
+  .leaflet-popup-content{ margin:14px 16px; }
+  .cp{ width:270px; max-width:100%; font-size:13px; line-height:1.45; }
+  .cp-title{ font-size:16px; font-weight:700; margin:0 24px 6px 0; }
+  .cp-title span{ font-weight:400; color:var(--text-dim); }
+  .cp-tag{ display:inline-block; font-size:11.5px; padding:2px 9px; border-radius:10px;
+           background:rgba(79,195,247,0.18); color:#4FC3F7; margin-bottom:10px; }
+  .cp-preview{ margin-bottom:10px; }
+  .cp-preview iframe{ width:100%; height:210px; border:1px solid var(--panel-border);
+                      border-radius:6px; background:#fff; display:block; }
+  .cp-btn{ display:block; text-align:center; padding:9px 12px; border-radius:6px; font-weight:600;
+           font-size:13px; text-decoration:none; background:#4FC3F7; color:#0B1116 !important; }
+  .cp-btn:hover{ background:#7fd3fa; }
+  .cp-missing{ padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.18);
+               color:var(--text-dim); font-style:italic; }
+  .cp-note{ margin-top:10px; font-size:11px; line-height:1.4; color:var(--text-dim); }
   @media (max-width: 760px){
     #outremer{ left:8px; right:8px; bottom:24px; align-items:stretch; }
     #om-toggle{ align-self:flex-start; }
     #om-boxes{ gap:4px; }
     .om-box{ flex:1; width:auto; height:60px; }
     .om-label{ font-size:8px; padding:1px 4px; }
+    #legend{ padding:10px 14px; gap:8px 16px; font-size:13px; }
+    #legend .swatch{ width:16px; height:16px; }
+    .map-toggle{ top:8px; right:8px; padding:8px 12px; font-size:13px; }
+    .cp{ width:230px; }
     #main{ flex-direction:column; }
     #side{
       width:auto; border-left:none; border-top:1px solid var(--panel-border);
@@ -153,7 +196,7 @@
 <div id="app">
   <header>
     <h1>Arrêtés préfectoraux EDPM par département</h1>
-    <p>Clique sur un département coloré (arrêté préfectoral) ou sur un point bleu (communication officielle d'une commune)</p>
+    <p>Clique sur un département coloré pour ouvrir son arrêté préfectoral. Pour voir les communes qui ont publié une communication officielle, active le bouton <strong>« Afficher les communes »</strong> en haut à droite de la carte.</p>
     <select id="dept-select">
       <option value="">Aller à un département ou une commune...</option>
     </select>
@@ -161,6 +204,9 @@
   <div id="main">
     <div id="map-wrap">
       <div id="map"></div>
+      <label class="map-toggle" id="communes-toggle" title="Afficher ou masquer les communes ayant publié une communication officielle">
+        <input type="checkbox" id="toggle-communes"><span class="dot"></span><span class="txt">Afficher les communes</span>
+      </label>
       <div id="outremer" aria-label="Départements et territoires d'outre-mer">
         <button id="om-toggle" type="button" aria-expanded="true">Outre-mer <span class="chev">▾</span></button>
         <div id="om-boxes"></div>
@@ -219,8 +265,7 @@
   <div id="legend">
     <div class="item"><span class="swatch" style="background:var(--existe)"></span> Arrêté préfectoral existant</div>
     <div class="item"><span class="swatch" style="background:var(--aucune)"></span> Aucun arrêté recensé</div>
-    <div class="item"><span class="swatch dot"></span> Communication officielle d'une commune</div>
-    <label><input type="checkbox" id="toggle-communes"> Afficher les communications officielles des communes</label>
+    <div class="item"><span class="swatch dot"></span> Commune ayant publié une communication officielle (bouton « Afficher les communes » sur la carte)</div>
     <div id="communes-note"></div>
   </div>
 </div>
@@ -355,16 +400,6 @@ function showEntry(nomDept, entry, code){
     ${detailsPref[code] ? kvHtml(detailsPref[code]) : ''}
     ${pdfBlock(entry.lien, 'Lien vers le PDF pas encore renseigné.')}
     ${communesHtml(code)}
-  `;
-}
-
-function showCommune(c){
-  ensureSideOpen();
-  sideDeptEl.innerHTML = `
-    <h2>${esc(c.nom)} (${esc(c.dept)})</h2>
-    <div class="tag">Communication officielle de la commune</div>
-    ${pdfBlock(c.lien, "Communication officielle pas encore renseignée.", "Ouvrir la communication officielle (PDF)")}
-    <div class="disclaimer">Mise à jour le ${dateMajCommunes}. ${avertissementCommunes}</div>
   `;
 }
 
@@ -520,14 +555,55 @@ const detailsPref = {
           amendeCasque: 'non précisé', amendeGilet: 'non précisé' }
 };
 
-const communeLayer = L.layerGroup(); // masquée par défaut : cochée via la légende
+const communeLayer = L.layerGroup(); // masquée par défaut : activée via le bouton sur la carte
+document.querySelector('#communes-toggle .txt').textContent = `Afficher les communes (${communes.length})`;
+
+// Contenu de la fenêtre contextuelle d'une commune
+function communePopupHtml(c){
+  const ok = c.lien && c.lien.toLowerCase().endsWith('.pdf');
+  return `<div class="cp">
+    <div class="cp-title">${esc(c.nom)} <span>(${esc(c.dept)})</span></div>
+    <div class="cp-tag">Communication officielle de la commune</div>
+    ${ok
+      ? `<div class="cp-preview" data-src="${esc(c.lien)}"></div>
+         <a class="cp-btn" href="${esc(c.lien)}" target="_blank" rel="noopener">Ouvrir la communication officielle (PDF)</a>`
+      : `<div class="cp-missing">Communication officielle pas encore renseignée.</div>`}
+    <div class="cp-note">Mise à jour le ${esc(dateMajCommunes)}. ${esc(avertissementCommunes)}</div>
+  </div>`;
+}
+
+// Aperçu du PDF : uniquement sur ordinateur, et seulement si le fichier existe
+const apercuPossible = window.matchMedia('(min-width: 761px) and (pointer: fine)').matches;
+const pdfExiste = {};
+function chargerApercu(popupEl){
+  if (!apercuPossible || !popupEl) return;
+  const zone = popupEl.querySelector('.cp-preview');
+  if (!zone || zone.firstChild) return;
+  const src = zone.dataset.src;
+  const afficher = () => {
+    zone.innerHTML = `<iframe src="${esc(src)}#toolbar=0&navpanes=0&view=FitH" title="Aperçu du PDF" loading="lazy"></iframe>`;
+  };
+  if (src in pdfExiste) { if (pdfExiste[src]) afficher(); return; }
+  fetch(src, { method: 'HEAD' })
+    .then(r => { pdfExiste[src] = r.ok; if (r.ok) afficher(); })
+    .catch(() => { pdfExiste[src] = false; });
+}
+
+// Points : plus gros, avec un contour blanc et un halo pour bien les voir
+const R_POINT = window.matchMedia('(pointer: coarse)').matches ? 11 : 9;
+const stylePoint = { radius: R_POINT, fillColor: '#4FC3F7', fillOpacity: 1, color: '#FFFFFF', weight: 2.5 };
 communes.forEach(c => {
-  const mk = L.circleMarker([c.lat, c.lng], { radius: 6, fillColor: '#4FC3F7', fillOpacity: 0.95, color: '#0B1116', weight: 1.5 });
-  mk.bindTooltip(`${c.nom} (${c.dept}) : communication officielle`, { sticky: true });
-  mk.on('click', () => showCommune(c));
-  mk.on('mouseover', () => mk.setStyle({ weight: 3, color: '#FFFFFF' }));
-  mk.on('mouseout', () => mk.setStyle({ weight: 1.5, color: '#0B1116' }));
+  L.circleMarker([c.lat, c.lng], { radius: R_POINT + 7, stroke: false, fillColor: '#4FC3F7',
+                                   fillOpacity: 0.28, interactive: false }).addTo(communeLayer);
+  const mk = L.circleMarker([c.lat, c.lng], stylePoint);
+  mk.bindTooltip(`${c.nom} (${c.dept})`, { sticky: true });
+  mk.bindPopup(() => communePopupHtml(c), { maxWidth: 300, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] });
+  mk.on('click', () => mk.closeTooltip());
+  mk.on('popupopen', e => chargerApercu(e.popup.getElement()));
+  mk.on('mouseover', () => mk.setStyle({ weight: 4, radius: R_POINT + 2 }));
+  mk.on('mouseout', () => mk.setStyle({ weight: 2.5, radius: R_POINT }));
   mk.addTo(communeLayer);
+  c.marker = mk;
 });
 
 function openCommune(id){
@@ -535,7 +611,7 @@ function openCommune(id){
   if (!c) return;
   if (!map.hasLayer(communeLayer)) { document.getElementById('toggle-communes').checked = true; communeLayer.addTo(map); }
   map.setView([c.lat, c.lng], Math.max(map.getZoom(), 10));
-  showCommune(c);
+  c.marker.openPopup();
 }
 
 // Boutons « communes du département » dans le panneau
