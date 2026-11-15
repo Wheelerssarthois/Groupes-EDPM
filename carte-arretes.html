@@ -286,6 +286,7 @@ const dataBrute = `
 07|Ardèche|arretes/arrete_ardeche.pdf
 09|Ariège|
 10|Aube|arretes/arrete_aube.pdf
+14|Calvados|arretes/arrete_calvados.pdf
 18|Cher|arretes/arrete_cher.pdf
 21|Côte-d'Or|arretes/arrete_cote-d-or.pdf
 34|Herault|arretes/arrete_herault.pdf
@@ -502,6 +503,7 @@ Amiens|80|49.894|2.296|arretes_municipal/amiens.pdf
 Angers|49|47.478|-0.563|arretes_municipal/angers.pdf
 Annemasse|74|46.194|6.236|arretes_municipal/annemasse.pdf
 Aurillac|15|44.927|2.444|arretes_municipal/aurillac.pdf
+Auxonne|21|47.1928|5.388|arretes_municipal/auxonne.pdf
 Avignon|84|43.949|4.806|arretes_municipal/avignon.pdf
 Barlin|62|50.452|2.617|arretes_municipal/barlin.pdf
 Beauvais|60|49.43|2.081|arretes_municipal/beauvais.pdf
@@ -517,6 +519,7 @@ Metz|57|49.119|6.176|arretes_municipal/metz.pdf
 Montbéliard|25|47.51|6.798|arretes_municipal/montbeliard.pdf
 Montmorency|95|48.988|2.322|arretes_municipal/montmorency.pdf
 Montpellier|34|43.611|3.877|arretes_municipal/montpellier.pdf
+Mulhouse|68|47.751|7.336|arretes_municipal/mulhouse.pdf
 Montélimar|26|44.558|4.75|arretes_municipal/montelimar.pdf
 Nancy|54|48.692|6.184|arretes_municipal/nancy.pdf
 Narbonne|11|43.184|3.004|arretes_municipal/narbonne.pdf
@@ -527,9 +530,11 @@ Perpignan|66|42.689|2.895|arretes_municipal/perpignan.pdf
 Romilly-sur-Seine|10|48.517|3.726|arretes_municipal/romilly-sur-seine.pdf
 Ruitz|62|50.456|2.569|arretes_municipal/ruitz.pdf
 Sains-en-Gohelle|62|50.447|2.658|arretes_municipal/sains-en-gohelle.pdf
+Saint-Brieuc|22|48.514|-2.76|arretes_municipal/saint-brieuc.pdf
 Saint-Denis|93|48.936|2.357|arretes_municipal/saint-denis.pdf
 Saint-Jean-de-Védas|34|43.577|3.832|arretes_municipal/saint-jean-de-vedas.pdf
 Saint-Quentin -de-Baron|33|44.817|-0.286|arretes_municipal/saint-quentin-de-baron.pdf
+Toulouse|31|43.605|1.444|arretes_municipal/toulouse.pdf
 Vence|06|43.723|7.112|arretes_municipal/vence.pdf
 Villeurbanne|69|45.767|4.88|arretes_municipal/villeurbanne.pdf
 Émerainville|77|48.816|2.634|arretes_municipal/emerainville.pdf
@@ -541,7 +546,7 @@ const communes = communesBrute.trim().split('\n').map((ligne, i) => {
   return { id: 'c' + i, nom, dept, lat: parseFloat(lat), lng: parseFloat(lng), lien: lien || '' };
 });
 // Date de dernière mise à jour de la liste des communes (à modifier à chaque mise à jour)
-const dateMajCommunes = '07/11/2026';
+const dateMajCommunes = '15/11/2026';
 const avertissementCommunes = `Liste non exhaustive : une commune absente peut avoir publié une communication officielle ou un arrêté. Vérifiez toujours auprès de la mairie.`;
 document.getElementById('communes-note').textContent =
   `Communications officielles des communes : mise à jour le ${dateMajCommunes}. ${avertissementCommunes}`;
