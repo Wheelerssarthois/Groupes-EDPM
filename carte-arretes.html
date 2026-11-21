@@ -165,6 +165,10 @@
   .cp-btn{ display:block; text-align:center; padding:9px 12px; border-radius:6px; font-weight:600;
            font-size:13px; text-decoration:none; background:#4FC3F7; color:#0B1116 !important; }
   .cp-btn:hover{ background:#7fd3fa; }
+  /* Variante jaune pour la fenêtre d'un arrêté préfectoral */
+  .cp-tag.pref{ background:rgba(255,200,69,0.18); color:var(--existe); }
+  .cp-btn.pref{ background:var(--existe); color:#1a1405 !important; }
+  .cp-btn.pref:hover{ opacity:0.85; }
   .cp-missing{ padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.18);
                color:var(--text-dim); font-style:italic; }
   .cp-note{ margin-top:10px; font-size:11px; line-height:1.4; color:var(--text-dim); }
@@ -405,6 +409,20 @@ function showEntry(nomDept, entry, code){
   `;
 }
 
+// Contenu de la fenêtre contextuelle d'un arrêté préfectoral
+function prefPopupHtml(nom, entry){
+  const ok = entry.lien && entry.lien.toLowerCase().endsWith('.pdf');
+  return `<div class="cp">
+    <div class="cp-title">${esc(nom)}</div>
+    <div class="cp-tag pref">Arrêté préfectoral</div>
+    ${ok
+      ? `<div class="cp-preview" data-src="${esc(entry.lien)}"></div>
+         <a class="cp-btn pref" href="${esc(entry.lien)}" target="_blank" rel="noopener">Ouvrir l'arrêté préfectoral (PDF)</a>`
+      : `<div class="cp-missing">Lien vers le PDF pas encore renseigné.</div>`}
+    <div class="cp-note">Vérifiez toujours la version en vigueur auprès de la préfecture.</div>
+  </div>`;
+}
+
 function styleForFeature(feature){
   const code = feature.properties.code;
   const entry = codeToEntry[code];
@@ -428,6 +446,11 @@ function makeGeoLayer(data, options = {}){
       const entry = codeToEntry[code];
       layersByCode[code] = layer;
       layer.on('click', () => showEntry(nom, entry, code));
+      if (entry && options.popup !== false) {
+        layer.bindPopup(() => prefPopupHtml(nom, entry), { maxWidth: 300, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] });
+        layer.on('popupopen', e => chargerApercu(e.popup.getElement()));
+        layer.on('click', () => layer.closeTooltip());
+      }
       layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#FFC845' }));
       layer.on('mouseout', () => gl.resetStyle(layer));
       if (options.tooltip !== false) {
@@ -472,7 +495,7 @@ outreMerList.forEach(({ code, label }) => {
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_3lyq_1_88b25a59456d7a7e32b86b3f', { maxZoom: 12 }).addTo(m);
 
   // Pas d'infobulle dans les encarts (elle serait coupée) : le nom est dans l'étiquette
-  const gl = makeGeoLayer({ type: 'FeatureCollection', features: [feature] }, { tooltip: false }).addTo(m);
+  const gl = makeGeoLayer({ type: 'FeatureCollection', features: [feature] }, { tooltip: false, popup: false }).addTo(m);
   const refit = () => {
     m.invalidateSize();
     if (m.getSize().x === 0) return; // encart replié : on recadrera à l'ouverture
