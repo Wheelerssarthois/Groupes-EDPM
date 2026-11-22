@@ -1,29 +1,25 @@
-# 🗺️ Carte des groupes EDPM et arrêté préfectoral et municipal
+# 🗺️ Carte des groupes EDPM et arrêtés préfectoraux
 
-Carte interactive répertoriant les groupes, associations et communautés de pratiquants d'EDPM (Engins de Déplacement Personnel Motorisés) en France et en Europe.
+Carte interactive des groupes, associations et communautés de pratiquants d'EDPM (trottinette électrique, gyroroue, monoroue, hoverboard...) en France et en Europe. Elle recense aussi les arrêtés préfectoraux et municipaux sur le port du casque et les restrictions d'usage.
 
-## 👉 Accéder à la carte
+## 👉 [Ouvrir la carte interactive des groupes EDPM](https://wheelerssarthois.github.io/Groupes-EDPM/)
 
-**[➡️ Cliquez ici pour ouvrir la carte](https://wheelerssarthois.github.io/Groupes-EDPM/)**
+## Ce que tu trouveras sur la carte
 
-## 🛴 Ce que tu trouveras sur la carte
+* Groupes réseaux sociaux : communautés Facebook locales et régionales
+* Associations loi 1901 : structures officielles pour promouvoir l'EDPM
+* Polo Wheel : groupes pratiquant le polo en gyroroue
+* Arrêtés préfectoraux et municipaux : port du casque et autres obligations
 
-- **Groupes réseaux sociaux** — communautés Facebook locales et régionales
-- **Associations loi 1901** — structures officielles pour promouvoir l'EDPM
-- **Polo Wheel** — groupes pratiquant le polo en gyroroue
-- **Arrêté préfectorale sur le port du casque et autres 
+## Fonctionnalités
 
-## 🔍 Fonctionnalités
+* Recherche par nom de groupe
+* Filtres par type (groupe, association, polo wheel)
+* Filtres par région
+* Fiche détaillée avec description, liens Facebook, Instagram, YouTube, site web
 
-- Recherche par nom de groupe
-- Filtres par type (groupe, association, polo wheel)
-- Filtres par région
-- Fiche détaillée avec description, liens Facebook, Instagram, YouTube, site web
-
-## 📍 Zones couvertes
+## Zones couvertes
 
 France métropolitaine, DOM-TOM et quelques groupes européens (Belgique, Luxembourg, Allemagne, Espagne, Italie...).
 
----
-
-*Carte réalisée par [Les Wheelers Sarthois](https://leswheelerssarthois.asptt.com/)*
+Carte maintenue par l'association Wheelers Sarthois.
