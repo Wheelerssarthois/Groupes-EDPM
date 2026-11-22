@@ -116,6 +116,9 @@
   .signal-link{ display:block; margin-top:8px; font-size:11.5px; color:var(--text-dim); text-align:center; }
   .signal-link:hover{ color:var(--existe); }
   .side-signal{ margin-top:14px; }
+  .disclaimer-bloc{ margin-top:16px; padding:10px 12px; border-radius:6px; background:rgba(255,200,69,0.08);
+        border-left:3px solid var(--existe); font-size:12px; line-height:1.5; color:var(--text-dim); }
+  .disclaimer-bloc strong{ color:var(--text); }
   .kv{ margin:4px 0 14px 0; border:1px solid var(--panel-border); border-radius:6px; overflow:hidden; }
   .kv-row{ display:flex; gap:10px; padding:8px 10px; font-size:13px; line-height:1.4; }
   .kv-row + .kv-row{ border-top:1px solid var(--panel-border); }
@@ -187,7 +190,6 @@
   .meta{ margin:0 0 12px 0; font-size:12px; line-height:1.5; color:var(--text-dim); }
   .meta-link{ display:block; margin-top:10px; font-size:12.5px; color:var(--existe); }
   #legend .swatch.grey-ok{ background:#5C6B77; }
-  #legend .swatch.grey-nv{ background:transparent; border:2px dashed #C2CBD2; }
   .cp-missing{ padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.18);
                color:var(--text-dim); font-style:italic; }
   .cp-note{ margin-top:10px; font-size:11px; line-height:1.4; color:var(--text-dim); }
@@ -240,10 +242,11 @@
       <div id="side-dept">
         <div id="empty-state">
           Clique sur un département coloré, ou cherche-le en haut, pour ouvrir l'arrêté.
-          <br><br>
-           <strong>Attention :</strong> cette carte a un but purement informatif. Elle est tenue à jour de bonne foi à partir des arrêtés publiés, mais peut contenir des erreurs ou des omissions, ou ne pas refléter un arrêté très récent, modifié ou abrogé. Elle n'a aucune valeur juridique et ne remplace pas les textes officiels. Pour toute vérification, consultez l'arrêté en vigueur (PDF ou recueil des actes administratifs de la préfecture) ou votre mairie. Les Wheelers Sarthois déclinent toute responsabilité en cas d'erreur ou d'usage de ces informations.
           <div id="signal-default" class="side-signal"></div>
         </div>
+      </div>
+      <div class="disclaimer-bloc">
+        <strong>Attention :</strong> cette carte a un but purement informatif. Elle est tenue à jour de bonne foi à partir des arrêtés publiés, mais peut contenir des erreurs ou des omissions, ou ne pas refléter un arrêté très récent, modifié ou abrogé. Elle n'a aucune valeur juridique et ne remplace pas les textes officiels. Pour toute vérification, consultez l'arrêté en vigueur (PDF ou recueil des actes administratifs de la préfecture) ou votre mairie. Les Wheelers Sarthois déclinent toute responsabilité en cas d'erreur ou d'usage de ces informations.
       </div>
       <div id="side-national">
         <h3>Textes de loi nationaux</h3>
@@ -286,8 +289,7 @@
   </div>
   <div id="legend">
     <div class="item"><span class="swatch" style="background:var(--existe)"></span> Arrêté préfectoral existant</div>
-    <div class="item"><span class="swatch grey-ok"></span> Vérifié : aucun arrêté</div>
-    <div class="item"><span class="swatch grey-nv"></span> Pas encore vérifié</div>
+    <div class="item"><span class="swatch grey-ok"></span> Aucun arrêté recensé</div>
     <div class="item"><span class="swatch dot"></span> Commune ayant publié une communication officielle (bouton « Afficher les communes » sur la carte)</div>
     <div id="communes-note"></div>
   </div>
@@ -344,73 +346,6 @@ const dataBrute = `
 
 `;
 
-// Départements sans arrêté : code|statut (Aucun arrêté vérifié ou Non vérifié)
-const autresBrute = `
-01|Non vérifié
-04|Non vérifié
-05|Non vérifié
-2A|Non vérifié
-2B|Non vérifié
-08|Non vérifié
-11|Non vérifié
-12|Non vérifié
-13|Non vérifié
-15|Non vérifié
-16|Non vérifié
-17|Non vérifié
-19|Non vérifié
-22|Non vérifié
-23|Non vérifié
-24|Non vérifié
-25|Non vérifié
-26|Non vérifié
-27|Non vérifié
-28|Non vérifié
-29|Non vérifié
-30|Non vérifié
-31|Non vérifié
-32|Non vérifié
-33|Non vérifié
-37|Non vérifié
-38|Non vérifié
-39|Non vérifié
-41|Non vérifié
-45|Non vérifié
-46|Non vérifié
-47|Non vérifié
-48|Non vérifié
-49|Non vérifié
-51|Non vérifié
-52|Non vérifié
-53|Non vérifié
-54|Non vérifié
-55|Non vérifié
-61|Non vérifié
-64|Non vérifié
-65|Non vérifié
-66|Non vérifié
-67|Non vérifié
-68|Non vérifié
-70|Non vérifié
-72|Non vérifié
-74|Non vérifié
-76|Non vérifié
-79|Non vérifié
-81|Non vérifié
-82|Non vérifié
-83|Non vérifié
-85|Non vérifié
-86|Non vérifié
-87|Non vérifié
-88|Non vérifié
-95|Non vérifié
-971|Non vérifié
-972|Non vérifié
-973|Non vérifié
-974|Non vérifié
-976|Non vérifié
-`;
-
 // Transformer)
 const arretes = {};
 dataBrute.trim().split('\n').forEach(ligne => {
@@ -429,18 +364,9 @@ Object.entries(arretes).forEach(([key, entry]) => {
   key.split('-').forEach(code => { codeToEntry[code] = entry; });
 });
 
-// Statut des départements sans arrêté
-const autres = {};
-autresBrute.trim().split('\n').forEach(ligne => {
-  ligne = ligne.trim();
-  if (!ligne) return;
-  const [code, statut] = ligne.split('|').map(s => s.trim());
-  autres[code] = statut;
-});
-// 'arrete', 'verifie' (aucun arrêté vérifié) ou 'nonverifie'
+// 'arrete' si un arrêté préfectoral est recensé, sinon 'aucun'
 function statutDept(code){
-  if (codeToEntry[code]) return 'arrete';
-  return autres[code] === 'Aucun arrêté vérifié' ? 'verifie' : 'nonverifie';
+  return codeToEntry[code] ? 'arrete' : 'aucun';
 }
 
 const map = L.map('map', { zoomControl: true, attributionControl: true })
@@ -511,14 +437,11 @@ function pdfBlock(lien, manquant, libelle = "Ouvrir l'arrêté (PDF)"){
 function showEntry(nomDept, entry, code){
   ensureSideOpen();
   if(!entry){
-    const verifie = statutDept(code) === 'verifie';
     sideDeptEl.innerHTML = `
       <h2>${esc(nomDept)}</h2>
-      <div class="tag grey">${verifie ? 'Vérifié : aucun arrêté' : 'Pas encore vérifié'}</div>
+      <div class="tag grey">Aucun arrêté recensé</div>
       <div id="empty-state">
-        ${verifie
-          ? "Aucun arrêté préfectoral EDPM n'a été trouvé pour ce département après vérification. La règle nationale s'applique, sauf arrêté municipal."
-          : "Ce département n'a pas encore été vérifié : l'absence d'arrêté n'est pas confirmée. Renseigne-toi auprès de la préfecture."}
+        Aucun arrêté préfectoral EDPM recensé pour ce département pour l'instant. Cela ne garantit pas qu'il n'en existe pas : renseignez-vous auprès de la préfecture.
       </div>
       <div class="side-signal">${signalHtml(nomDept, 'signal-btn')}</div>
       ${communesHtml(code)}
@@ -556,10 +479,13 @@ function prefPopupHtml(nom, entry, code){
 }
 
 function styleForFeature(feature){
-  const st = statutDept(feature.properties.code);
-  if (st === 'arrete')  return { fillColor: '#FFC845', fillOpacity: 0.75, color: '#0B1116', weight: 1 };
-  if (st === 'verifie') return { fillColor: '#26343E', fillOpacity: 0.6,  color: '#0B1116', weight: 1 };
-  return { fillColor: '#26343E', fillOpacity: 0.1, color: '#57646F', weight: 1, dashArray: '4 3' };
+  const entry = codeToEntry[feature.properties.code];
+  return {
+    fillColor: entry ? '#FFC845' : '#26343E',
+    fillOpacity: entry ? 0.75 : 0.35,
+    color: '#0B1116',
+    weight: 1
+  };
 }
 
 const layersByCode = {};
@@ -582,8 +508,7 @@ function makeGeoLayer(data, options = {}){
       layer.on('mouseover', () => layer.setStyle({ weight: 2, color: '#FFC845' }));
       layer.on('mouseout', () => gl.resetStyle(layer));
       if (options.tooltip !== false) {
-        const st = statutDept(code);
-        layer.bindTooltip(`${nom} : ${st === 'arrete' ? 'arrêté existant' : (st === 'verifie' ? 'aucun arrêté vérifié' : 'pas encore vérifié')}`, { sticky: true });
+        layer.bindTooltip(`${nom} : ${entry ? 'arrêté existant' : 'aucun arrêté recensé'}`, { sticky: true });
       }
     }
   });
@@ -807,11 +732,9 @@ document.getElementById('toggle-communes').addEventListener('change', e => {
 const tousDepts = [...geojsonData.features, ...outreMerData.features].map(f => f.properties);
 const nbTotal = tousDepts.length;
 const nbArrete = tousDepts.filter(p => statutDept(p.code) === 'arrete').length;
-const nbVerifie = tousDepts.filter(p => statutDept(p.code) === 'verifie').length;
-const nbNonVerif = nbTotal - nbArrete - nbVerifie;
 const compteurEl = document.getElementById('compteur');
 compteurEl.textContent = `${nbArrete} départements avec arrêté sur ${nbTotal}`;
-compteurEl.title = `${nbVerifie} vérifiés sans arrêté, ${nbNonVerif} pas encore vérifiés`;
+compteurEl.title = 'Départements pour lesquels un arrêté préfectoral est recensé';
 
 const searchEl = document.getElementById('search');
 const searchListEl = document.getElementById('search-list');
