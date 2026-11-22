@@ -698,6 +698,22 @@ Vence|06|43.723|7.112|arretes_municipal/vence.pdf
 Villeurbanne|69|45.767|4.88|arretes_municipal/villeurbanne.pdf
 Émerainville|77|48.816|2.634|arretes_municipal/emerainville.pdf
 Étampes|91|48.435|2.161|arretes_municipal/etampes.pdf
+Beauchamp|95|49.011|2.199|arretes_municipal/beauchamp.pdf
+Biganos|33|44.642|-0.976|arretes_municipal/biganos.pdf
+Charleville-Mézières|08|49.773|4.72|arretes_municipal/charleville-mezieres.pdf
+Crépy-en-Valois|60|49.226|2.891|arretes_municipal/crepy-en-valois.pdf
+Mordelles|35|48.073|-1.846|arretes_municipal/mordelles.pdf
+Novillars|25|47.285|6.134|arretes_municipal/novillars.pdf
+Obernai|67|48.462|7.481|arretes_municipal/obernai.pdf
+Rambervillers|88|48.346|6.635|arretes_municipal/rambervillers.pdf
+Rethel|08|49.509|4.365|arretes_municipal/rethel.pdf
+Saint-Dié-des-Vosges|88|48.287|6.947|arretes_municipal/saint-die-des-vosges.pdf
+Saint-Ouen-l’Aumône|95|49.044|2.106|arretes_municipal/saint-ouen-l-aumone.pdf
+Sannois|95|48.971|2.256|arretes_municipal/sannois.pdf
+Savières|10|48.407|3.95|arretes_municipal/savieres.pdf
+Thourotte|60|49.478|2.883|arretes_municipal/thourotte.pdf
+Vénissieux|69|45.697|4.885|arretes_municipal/venissieux.pdf
+
 `;
 
 const communes = communesBrute.trim().split('\n').map((ligne, i) => {
@@ -705,7 +721,7 @@ const communes = communesBrute.trim().split('\n').map((ligne, i) => {
   return { id: 'c' + i, nom, dept, lat: parseFloat(lat), lng: parseFloat(lng), lien: lien || '' };
 });
 // Date de dernière mise à jour de la liste des communes (à modifier à chaque mise à jour)
-const dateMajCommunes = '15/11/2026';
+const dateMajCommunes = '22/11/2026';
 // Date de dernière mise à jour des arrêtés préfectoraux (à modifier à chaque mise à jour)
 const dateMajArretes = '22/11/2026';
 const avertissementCommunes = `Liste non exhaustive : une commune absente peut avoir publié une communication officielle ou un arrêté. Vérifiez toujours auprès de la mairie.`;
