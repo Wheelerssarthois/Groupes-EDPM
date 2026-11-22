@@ -169,6 +169,10 @@
   .cp-tag.pref{ background:rgba(255,200,69,0.18); color:var(--existe); }
   .cp-btn.pref{ background:var(--existe); color:#1a1405 !important; }
   .cp-btn.pref:hover{ opacity:0.85; }
+  /* Suivi d'un arrêté : statut, dates, remarque, lien officiel */
+  .meta{ margin:0 0 12px 0; font-size:12px; line-height:1.5; color:var(--text-dim); }
+  .meta strong{ color:var(--text); }
+  .meta-link{ display:inline-block; margin-top:4px; color:var(--existe); }
   .cp-missing{ padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.18);
                color:var(--text-dim); font-style:italic; }
   .cp-note{ margin-top:10px; font-size:11px; line-height:1.4; color:var(--text-dim); }
@@ -234,7 +238,7 @@
           <h3>Règle nationale par défaut</h3>
           <p><strong>Casque :</strong> non obligatoire en agglomération, obligatoire hors agglomération (35 € à 135 € hors agglo).</p>
           <p><strong>Gilet :</strong> obligatoire la nuit ou si visibilité insuffisante (35 €).</p>
-          <p><strong>Attention :</strong> cette règle s'applique seulement en l'absence d'arrêté plus restrictif. Un arrêté préfectoral ou municipal peut rendre le casque et/ou le gilet obligatoires, y compris en agglomération. Vérifiez toujours l'arrêté du département et celui de la commune.</p>
+          <p><strong>Attention :</strong> cette règle s'applique seulement en l'absence d'arrêté plus restrictif. Un arrêté préfectoral ou municipal peut rendre le casque et/ou gilet obligatoires, y compris en agglomération. Vérifiez toujours l'arrêté du département et celui de la commune.</p>
         </div>
       </div>
       <div id="retour-groupes-bloc" style="
@@ -284,44 +288,45 @@ const geojsonData = {"type":"FeatureCollection","features":[{"type":"Feature","g
 // 2) LES DEPARTEMENTS AVEC UN ARRETE
 // -----------------------------------------------------------------
 const dataBrute = `
-02|Aisne|arretes/arrete_aisne.pdf
-03|Allier|arretes/arrete_allier.pdf
-06|Alpes-Maritimes|arretes/arrete_alpes-maritimes.pdf
-07|Ardèche|arretes/arrete_ardeche.pdf
-09|Ariège|arretes/arrete_ariege.pdf
-10|Aube|arretes/arrete_aube.pdf
-14|Calvados|arretes/arrete_calvados.pdf
-18|Cher|arretes/arrete_cher.pdf
-21|Côte-d'Or|arretes/arrete_cote-d-or.pdf
-34|Hérault|arretes/arrete_herault.pdf
-35|Ille-et-Vilaine|arretes/arrete_ille-et-vilaine.pdf
-36|Indre|arretes/arrete_indre.pdf
-40|Landes|arretes/arrete_landes.pdf
-42|Loire|arretes/arrete_loire.pdf
-43|Haute-Loire|arretes/arrete_haute-loire.pdf
-44|Loire-Atlantique|arretes/arrete_loire-atlantique.pdf
-50|Manche|arretes/arrete_manche.pdf
-56|Morbihan|arretes/arrete_morbihan.pdf
-57|Moselle|arretes/arrete_moselle.pdf
-58|Nièvre|arretes/arrete_nievre.pdf
-59|Nord|arretes/arrete_nord.pdf
-60|Oise|arretes/arrete_oise.pdf
-62|Pas-de-Calais|arretes/arrete_pas-de-calais.pdf
-63|Puy-de-Dôme|arretes/arrete_puy-de-dome.pdf
-69|Rhône|arretes/arrete_rhone.pdf
-71|Saône-et-Loire|arretes/arrete_saone-et-loire.pdf
-73|Savoie|arretes/arrete_savoie.pdf
-75|Paris|arretes/arrete_paris.pdf
-77|Seine-et-Marne|arretes/arrete_seine_et_marne.pdf
-78|Yvelines|arretes/arrete_yvelines.pdf
-80|Somme|arretes/arrete_somme.pdf
-84|Vaucluse|arretes/arrete_vaucluse.pdf
-89|Yonne|arretes/arrete_yonne.pdf
-90|Territoire de Belfort|arretes/arrete_territoire_de_belfort.pdf
-91|Essonne|arretes/arrete_essonne.pdf
-92|Hauts-de-Seine|arretes/arrete_hauts-de-seine.pdf
-93|Seine-Saint-Denis|arretes/arrete_seine-saint-denis.pdf
-94|Val-de-Marne|arretes/arrete_val-de-marne.pdf
+02|Aisne|arretes/aisne.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+03|Allier|arretes/allier.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+06|Alpes-Maritimes|arretes/alpes-maritimes.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+07|Ardèche|arretes/ardeche.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+09|Ariège|arretes/ariege.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+10|Aube|arretes/aube.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+14|Calvados|arretes/calvados.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+18|Cher|arretes/cher.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+21|Côte-d'Or|arretes/cote-d-or.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+34|Hérault|arretes/herault.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+35|Ille-et-Vilaine|arretes/ille-et-vilaine.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+36|Indre|arretes/indre.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+40|Landes|arretes/landes.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+42|Loire|arretes/loire.pdf|Obligatoire en permanence|Selon code de la route|||||||||
+43|Haute-Loire|arretes/haute-loire.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+44|Loire-Atlantique|arretes/loire-atlantique.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+50|Manche|arretes/manche.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+56|Morbihan|arretes/morbihan.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+57|Moselle|arretes/moselle.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+58|Nièvre|arretes/nievre.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+59|Nord|arretes/nord.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+60|Oise|arretes/oise.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+62|Pas-de-Calais|arretes/pas-de-calais.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+63|Puy-de-Dôme|arretes/puy-de-dome.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+69|Rhône|arretes/rhone.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+71|Saône-et-Loire|arretes/saone-et-loire.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+73|Savoie|arretes/savoie.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+75|Paris|arretes/paris.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+77|Seine-et-Marne|arretes/seine-et-marne.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+78|Yvelines|arretes/yvelines.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+80|Somme|arretes/somme.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+84|Vaucluse|arretes/vaucluse.pdf|Obligatoire en permanence|Selon Code de la route|||||||||
+89|Yonne|arretes/yonne.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+90|Territoire de Belfort|arretes/territoire-de-belfort.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+91|Essonne|arretes/essonne.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+92|Hauts-de-Seine|arretes/hauts-de-seine.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+93|Seine-Saint-Denis|arretes/seine-saint-denis.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+94|Val-de-Marne|arretes/val-de-marne.pdf|Obligatoire en permanence|Obligatoire en permanence|||||||||
+
 `;
 
 // Transformer)
@@ -330,8 +335,10 @@ dataBrute.trim().split('\n').forEach(ligne => {
   ligne = ligne.trim();
   if (!ligne) return;
   const cols = ligne.split('|').map(s => s.trim());
-  const [codes, nom, lien] = cols;
-  arretes[codes] = { nom, lien };
+  const [codes, nom, lien, casque, gilet, amendeCasque, amendeGilet, restrictions,
+         dateArrete, dateVerif, statut, lienOfficiel, finValidite, remarque] = cols;
+  arretes[codes] = { nom, lien, casque, amendeCasque, amendeGilet, restrictions,
+                     dateArrete, dateVerif, statut, lienOfficiel, finValidite, remarque };
 });
 
 // -----------------------------------------------------------------
@@ -371,6 +378,20 @@ function kvHtml(d){
   return rows.length ? `<div class="kv">${rows.join('')}</div>` : '';
 }
 
+// Infos de suivi d'un arrêté : statut, dates, remarque, lien officiel
+function metaHtml(e){
+  const lignes = [];
+  if (e.statut) lignes.push(`Statut : <strong>${esc(e.statut)}</strong>`);
+  if (e.dateArrete) lignes.push(`Arrêté du ${esc(e.dateArrete)}`);
+  if (e.finValidite) lignes.push(`Valable jusqu'au ${esc(e.finValidite)}`);
+  if (e.dateVerif) lignes.push(`Vérifié le ${esc(e.dateVerif)}`);
+  if (e.remarque) lignes.push(esc(e.remarque));
+  const officiel = /^https?:\/\//i.test(e.lienOfficiel || '')
+    ? `<a class="meta-link" href="${esc(e.lienOfficiel)}" target="_blank" rel="noopener">Page officielle de la préfecture</a>` : '';
+  if (!lignes.length && !officiel) return '';
+  return `<div class="meta">${lignes.map(l => `<div>${l}</div>`).join('')}${officiel}</div>`;
+}
+
 function communesHtml(code){
   const list = communes.filter(c => c.dept === code);
   if (!list.length) return '';
@@ -404,17 +425,20 @@ function showEntry(nomDept, entry, code){
     <h2>${entry.nom}</h2>
     <div class="tag pref">Arrêté préfectoral</div>
     ${detailsPref[code] ? kvHtml(detailsPref[code]) : ''}
+    ${metaHtml(entry)}
     ${pdfBlock(entry.lien, 'Lien vers le PDF pas encore renseigné.')}
     ${communesHtml(code)}
   `;
 }
 
 // Contenu de la fenêtre contextuelle d'un arrêté préfectoral
-function prefPopupHtml(nom, entry){
+function prefPopupHtml(nom, entry, code){
   const ok = entry.lien && entry.lien.toLowerCase().endsWith('.pdf');
   return `<div class="cp">
     <div class="cp-title">${esc(nom)}</div>
     <div class="cp-tag pref">Arrêté préfectoral</div>
+    ${detailsPref[code] ? kvHtml(detailsPref[code]) : ''}
+    ${metaHtml(entry)}
     ${ok
       ? `<div class="cp-preview" data-src="${esc(entry.lien)}"></div>
          <a class="cp-btn pref" href="${esc(entry.lien)}" target="_blank" rel="noopener">Ouvrir l'arrêté préfectoral (PDF)</a>`
@@ -447,7 +471,7 @@ function makeGeoLayer(data, options = {}){
       layersByCode[code] = layer;
       layer.on('click', () => showEntry(nom, entry, code));
       if (entry && options.popup !== false) {
-        layer.bindPopup(() => prefPopupHtml(nom, entry), { maxWidth: 300, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] });
+        layer.bindPopup(() => prefPopupHtml(nom, entry, code), { maxWidth: 300, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] });
         layer.on('popupopen', e => chargerApercu(e.popup.getElement()));
         layer.on('click', () => layer.closeTooltip());
       }
@@ -581,10 +605,11 @@ const communesById = {};
 communes.forEach(c => { communesById[c.id] = c; });
 
 // Détails des arrêtés préfectoraux (affichés sous le titre du département)
-const detailsPref = {
-  '09': { casque: 'Obligatoire en permanence', gilet: 'Obligatoire en permanence',
-          amendeCasque: 'non précisé', amendeGilet: 'non précisé' }
-};
+const detailsPref = {};
+Object.entries(arretes).forEach(([code, a]) => {
+  detailsPref[code] = { casque: a.casque, gilet: a.gilet, amendeCasque: a.amendeCasque,
+                        amendeGilet: a.amendeGilet, restrictions: a.restrictions };
+});
 
 const communeLayer = L.layerGroup(); // masquée par défaut : activée via le bouton sur la carte
 document.querySelector('#communes-toggle .txt').textContent = `Afficher les communes (${communes.length})`;
