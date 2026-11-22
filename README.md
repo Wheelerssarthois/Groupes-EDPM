@@ -11,6 +11,7 @@ Carte interactive répertoriant les groupes, associations et communautés de pra
 - **Groupes réseaux sociaux** — communautés Facebook locales et régionales
 - **Associations loi 1901** — structures officielles pour promouvoir l'EDPM
 - **Polo Wheel** — groupes pratiquant le polo en gyroroue
+- **Arrêté préfectorale sur le port du casque et autres 
 
 ## 🔍 Fonctionnalités
 
