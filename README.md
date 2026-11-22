@@ -1,4 +1,4 @@
-# 🗺️ Carte des groupes EDPM
+# 🗺️ Carte des groupes EDPM et arrêté préfectoral et municipal
 
 Carte interactive répertoriant les groupes, associations et communautés de pratiquants d'EDPM (Engins de Déplacement Personnel Motorisés) en France et en Europe.
 
