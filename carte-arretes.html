@@ -652,9 +652,9 @@ const communes = communesBrute.trim().split('\n').map((ligne, i) => {
   return { id: 'c' + i, nom, dept, lat: parseFloat(lat), lng: parseFloat(lng), lien: lien || '' };
 });
 // Date de dernière mise à jour de la liste des communes (à modifier à chaque mise à jour)
-const dateMajCommunes = '22/11/2026';
+const dateMajCommunes = '28/11/2026';
 // Date de dernière mise à jour des arrêtés préfectoraux (à modifier à chaque mise à jour)
-const dateMajArretes = '22/11/2026';
+const dateMajArretes = '28/11/2026';
 const avertissementCommunes = `Liste non exhaustive : une commune absente peut avoir publié une communication officielle ou un arrêté. Vérifiez toujours auprès de la mairie.`;
 document.getElementById('communes-note').textContent =
   `Arrêtés préfectoraux : mise à jour le ${dateMajArretes}. Communications officielles des communes : mise à jour le ${dateMajCommunes}. ${avertissementCommunes}`;
